@@ -30,6 +30,18 @@ npx expo start         # abra no Expo Go (Android/iOS) ou pressione 'a' / 'i'
 | 4 — Inteligência | Elo fraco, próxima meta, insights automáticos, sub-radar de Braço/Perna |
 | 5 — Retenção | Histórico, streak, radar hoje vs. ~30 dias atrás |
 
+## Design
+
+Tema escuro premium inspirado em **Whoop, Oura, Strava e Hevy**:
+
+- Tipografia **Inter** (6 pesos) carregada via `expo-font` com splash gate.
+- **Gradientes** (`expo-linear-gradient`) em fundos, botões, cards de destaque e no
+  preenchimento do radar; "auroras" de fundo e glow colorido nos cards.
+- **Glassmorphism**: cards translúcidos com borda hairline (`src/components/ui.js`).
+- **Anel de progresso** circular para o score geral (`ProgressRing`, estilo Whoop/Oura).
+- Sistema de design centralizado em `src/theme.js` (cores, gradientes, tipografia,
+  espaçamento, raios, sombras/glow).
+
 ## Arquitetura
 
 ```

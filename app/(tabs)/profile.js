@@ -1,22 +1,37 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, Alert, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '../../src/state/AppContext';
-import { Screen, H1, H3, Body, Small, Card, Button, Row } from '../../src/components/ui';
-import { colors, spacing, radius, font } from '../../src/theme';
-import { GOALS } from '../../src/data/goals';
+import {
+  Screen, H1, H3, Body, Small, Tiny, Label,
+  Card, Button, Row, Badge, Divider,
+} from '../../src/components/ui';
+import { colors, spacing, radius, font, fonts, gradients, hexA } from '../../src/theme';
+import { GOALS, getGoal } from '../../src/data/goals';
 import { ageFromBirthDate } from '../../src/data/levels';
 
 const input = {
-  backgroundColor: colors.surfaceAlt,
+  backgroundColor: colors.glass,
   borderRadius: radius.sm,
   borderWidth: 1,
-  borderColor: colors.border,
+  borderColor: colors.glassBorder,
   color: colors.text,
-  paddingHorizontal: spacing(1.5),
-  paddingVertical: spacing(1.25),
+  paddingHorizontal: spacing(1.75),
+  paddingVertical: spacing(1.5),
   fontSize: font.body,
+  fontFamily: fonts.bold,
 };
+
+function InfoCol({ label, value }) {
+  return (
+    <View style={{ flex: 1, alignItems: 'center' }}>
+      <Body style={{ fontFamily: fonts.extra, fontSize: 18 }}>{value}</Body>
+      <Tiny style={{ marginTop: 2 }}>{label}</Tiny>
+    </View>
+  );
+}
 
 export default function Profile() {
   const router = useRouter();
@@ -25,6 +40,7 @@ export default function Profile() {
 
   if (!profile) return null;
   const age = ageFromBirthDate(profile.birth_date);
+  const goal = getGoal(profile.goal);
 
   const saveWeight = async () => {
     const w = Number(weight);
@@ -37,138 +53,105 @@ export default function Profile() {
   const confirmReset = () => {
     Alert.alert('Apagar tudo?', 'Isso remove perfil e todos os treinos. Não dá pra desfazer.', [
       { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Apagar',
-        style: 'destructive',
-        onPress: async () => {
-          await resetAll();
-          router.replace('/onboarding');
-        },
-      },
+      { text: 'Apagar', style: 'destructive', onPress: async () => { await resetAll(); router.replace('/onboarding'); } },
     ]);
   };
 
   return (
     <Screen>
-      <H1>Perfil</H1>
+      <H1 style={{ marginBottom: spacing(1.5) }}>Perfil</H1>
 
-      <Card style={{ marginTop: spacing(1) }}>
-        <Row style={{ justifyContent: 'space-between' }}>
-          <Small>Sexo</Small>
-          <Body>{profile.sex === 'male' ? 'Masculino' : 'Feminino'}</Body>
+      {/* Cartão de identidade */}
+      <Card strong style={{ alignItems: 'center', paddingVertical: spacing(2.5) }}>
+        <LinearGradient colors={gradients.brand} style={styles.avatar}>
+          <Ionicons name={profile.sex === 'male' ? 'male' : 'female'} size={28} color="#fff" />
+        </LinearGradient>
+        <Row style={{ marginTop: spacing(1.5) }}>
+          {goal && <Badge label={`${goal.emoji} ${goal.label}`} color={colors.primary} />}
         </Row>
-        <Row style={{ justifyContent: 'space-between', marginTop: spacing(0.5) }}>
-          <Small>Idade</Small>
-          <Body>{age != null ? `${age} anos` : '—'}</Body>
-        </Row>
-        <Row style={{ justifyContent: 'space-between', marginTop: spacing(0.5) }}>
-          <Small>Altura</Small>
-          <Body>{profile.height_cm} cm</Body>
+        <Divider style={{ alignSelf: 'stretch' }} />
+        <Row style={{ alignSelf: 'stretch' }}>
+          <InfoCol label="SEXO" value={profile.sex === 'male' ? 'M' : 'F'} />
+          <InfoCol label="IDADE" value={age != null ? age : '—'} />
+          <InfoCol label="ALTURA" value={`${profile.height_cm}`} />
+          <InfoCol label="PESO" value={`${profile.bodyweight_kg}`} />
         </Row>
       </Card>
 
+      {/* Peso */}
       <Card>
-        <H3>Peso corporal</H3>
-        <Small style={{ marginBottom: spacing(1) }}>
-          Recalcula os percentis dos próximos registros (§12).
-        </Small>
+        <Row style={{ alignItems: 'center', marginBottom: spacing(1) }}>
+          <Ionicons name="scale-outline" size={18} color={colors.primary} style={{ marginRight: 8 }} />
+          <H3>Peso corporal</H3>
+        </Row>
+        <Small style={{ marginBottom: spacing(1.25) }}>Recalcula os percentis dos próximos registros.</Small>
         <Row>
-          <TextInput
-            style={[input, { flex: 1, marginRight: spacing(1) }]}
-            keyboardType="numeric"
-            value={weight}
-            onChangeText={setWeight}
-            placeholder="kg"
-            placeholderTextColor={colors.textFaint}
-          />
+          <TextInput style={[input, { flex: 1, marginRight: spacing(1), textAlign: 'center' }]} keyboardType="numeric" value={weight} onChangeText={setWeight} placeholder="kg" placeholderTextColor={colors.textFaint} />
           <Button title="Salvar" onPress={saveWeight} style={{ paddingHorizontal: spacing(3) }} />
         </Row>
       </Card>
 
+      {/* Objetivo */}
       <Card>
-        <H3 style={{ marginBottom: spacing(1) }}>Objetivo</H3>
+        <Row style={{ alignItems: 'center', marginBottom: spacing(1.25) }}>
+          <Ionicons name="flag-outline" size={18} color={colors.primary} style={{ marginRight: 8 }} />
+          <H3>Objetivo</H3>
+        </Row>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
           {GOALS.map((g) => {
             const active = profile.goal === g.id;
             return (
-              <Pressable
-                key={g.id}
-                onPress={() => updateProfile({ goal: g.id })}
-                style={[styles.chip, active && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, active && { color: colors.text }]}>
-                  {g.emoji} {g.label}
-                </Text>
+              <Pressable key={g.id} onPress={() => updateProfile({ goal: g.id })} style={[styles.chip, active && styles.chipActive]}>
+                <Text style={[styles.chipText, active && { color: colors.text, fontFamily: fonts.semibold }]}>{g.emoji} {g.label}</Text>
               </Pressable>
             );
           })}
         </View>
       </Card>
 
+      {/* Idade */}
       <Card>
-        <H3>Comparação por idade</H3>
-        <Small style={{ marginBottom: spacing(1) }}>
-          "Gentil" compara você com a sua faixa etária em vez de todos os adultos.
-        </Small>
+        <Row style={{ alignItems: 'center', marginBottom: spacing(1) }}>
+          <Ionicons name="hourglass-outline" size={18} color={colors.primary} style={{ marginRight: 8 }} />
+          <H3>Comparação por idade</H3>
+        </Row>
+        <Small style={{ marginBottom: spacing(1.25) }}>"Gentil" compara você com a sua faixa etária em vez de todos os adultos.</Small>
         <Row>
-          {[
-            ['absolute', 'Todos os adultos'],
-            ['age_adjusted', `Minha idade${age != null ? ` (${age})` : ''}`],
-          ].map(([v, label]) => {
+          {[['absolute', 'Todos os adultos'], ['age_adjusted', `Minha idade${age != null ? ` (${age})` : ''}`]].map(([v, label]) => {
             const active = profile.age_compare_mode === v;
             return (
-              <Pressable
-                key={v}
-                onPress={() => updateProfile({ age_compare_mode: v })}
-                style={[styles.seg, active && styles.segActive]}
-              >
-                <Text style={[styles.segText, active && { color: colors.text }]}>{label}</Text>
+              <Pressable key={v} onPress={() => updateProfile({ age_compare_mode: v })} style={[styles.seg, active && styles.segActive]}>
+                <Text style={[styles.segText, active && { color: colors.text, fontFamily: fonts.bold }]}>{label}</Text>
               </Pressable>
             );
           })}
         </Row>
-        <Small style={{ marginTop: spacing(1), color: colors.textFaint }}>
-          Aplica-se aos próximos registros.
-        </Small>
+        <Tiny style={{ marginTop: spacing(1) }}>Aplica-se aos próximos registros.</Tiny>
       </Card>
 
-      <Button
-        title="Apagar dados e recomeçar"
-        variant="danger"
-        onPress={confirmReset}
-        style={{ marginTop: spacing(1) }}
-      />
+      <Button title="Apagar dados e recomeçar" variant="danger" icon={<Ionicons name="trash-outline" size={16} color={colors.bad} />} onPress={confirmReset} style={{ marginTop: spacing(0.5) }} />
 
-      <Small style={{ textAlign: 'center', marginTop: spacing(2), color: colors.textFaint }}>
-        StatsUp · força em percentil · dados offline
+      <Small style={{ textAlign: 'center', marginTop: spacing(2.5), color: colors.textFaint }}>
+        StatsUp · força em percentil · 100% offline
       </Small>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  avatar: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   chip: {
-    paddingVertical: spacing(1),
-    paddingHorizontal: spacing(1.5),
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceAlt,
-    marginRight: spacing(1),
-    marginBottom: spacing(1),
+    paddingVertical: spacing(1), paddingHorizontal: spacing(1.75), borderRadius: radius.pill,
+    borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glass,
+    marginRight: spacing(1), marginBottom: spacing(1),
   },
-  chipActive: { borderColor: colors.primary, backgroundColor: colors.primary + '22' },
-  chipText: { color: colors.textDim, fontSize: font.small, fontWeight: '600' },
+  chipActive: { borderColor: colors.primary, backgroundColor: hexA(colors.primary, 0.16) },
+  chipText: { color: colors.textDim, fontSize: font.small, fontFamily: fonts.medium },
   seg: {
-    flex: 1,
-    paddingVertical: spacing(1.25),
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceAlt,
-    alignItems: 'center',
-    marginRight: spacing(1),
+    flex: 1, paddingVertical: spacing(1.5), borderRadius: radius.sm,
+    borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glass,
+    alignItems: 'center', justifyContent: 'center', marginRight: spacing(1),
   },
-  segActive: { borderColor: colors.primary, backgroundColor: colors.primary + '22' },
-  segText: { color: colors.textDim, fontWeight: '600', fontSize: font.small },
+  segActive: { borderColor: colors.primary, backgroundColor: hexA(colors.primary, 0.16) },
+  segText: { color: colors.textDim, fontFamily: fonts.medium, fontSize: font.small },
 });

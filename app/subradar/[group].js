@@ -3,30 +3,15 @@ import { View, Text, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../src/state/AppContext';
-import { Screen, H1, H3, Body, Small, Card, Row, Button } from '../../src/components/ui';
-import { colors, spacing, groupColor, radius } from '../../src/theme';
 import {
-  SUBGROUPS_BY_GROUP,
-  SUBGROUP_LABELS_PT,
-  GROUP_LABELS_PT,
-  getExercise,
+  Screen, Display, H1, H3, Body, Small, Tiny, Label,
+  Card, GradientCard, Row, Badge, Button, ProgressBar,
+} from '../../src/components/ui';
+import { colors, spacing, groupColor, groupGradient, fonts, hexA } from '../../src/theme';
+import {
+  SUBGROUPS_BY_GROUP, SUBGROUP_LABELS_PT, GROUP_LABELS_PT, getExercise,
 } from '../../src/data/exercises';
-import { LEVEL_LABELS_PT, levelFromPercentile, LEVEL_PCT } from '../../src/data/levels';
-
-function Bar({ value, color }) {
-  return (
-    <View style={{ height: 10, backgroundColor: colors.surfaceAlt, borderRadius: 5, overflow: 'hidden' }}>
-      <View
-        style={{
-          height: '100%',
-          width: `${Math.max(2, Math.min(100, value))}%`,
-          backgroundColor: color,
-          borderRadius: 5,
-        }}
-      />
-    </View>
-  );
-}
+import { LEVEL_LABELS_PT, levelFromPercentile } from '../../src/data/levels';
 
 export default function SubRadar() {
   const { group } = useLocalSearchParams();
@@ -35,10 +20,8 @@ export default function SubRadar() {
 
   const subs = SUBGROUPS_BY_GROUP[group] || [];
   const color = groupColor[group];
-
   const sub = radar ? radar.subScores[group] || {} : {};
 
-  // Exercícios registrados por subgrupo.
   const exBySub = useMemo(() => {
     const out = {};
     for (const s of subs) out[s] = [];
@@ -53,76 +36,83 @@ export default function SubRadar() {
     return out;
   }, [radar, group, subs]);
 
-  // Identifica subgrupo mais atrás.
   const weakestSub = useMemo(() => {
-    let w = null;
-    let min = Infinity;
-    for (const s of subs) {
-      if (sub[s] && sub[s].score < min) {
-        min = sub[s].score;
-        w = s;
-      }
-    }
+    let w = null, min = Infinity;
+    for (const s of subs) if (sub[s] && sub[s].score < min) { min = sub[s].score; w = s; }
     return w;
   }, [sub, subs]);
 
   return (
     <Screen>
-      <Row style={{ marginBottom: spacing(1) }}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={{ marginRight: spacing(1) }}>
-          <Ionicons name="chevron-back" size={28} color={colors.text} />
+      <Row style={{ marginBottom: spacing(1.5), alignItems: 'center' }}>
+        <Pressable onPress={() => router.back()} hitSlop={12} style={styles_back}>
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
-        <H1 style={{ color }}>{GROUP_LABELS_PT[group]}</H1>
+        <View style={{ marginLeft: spacing(1.5) }}>
+          <Label color={color}>Detalhe do eixo</Label>
+          <H1 style={{ color }}>{GROUP_LABELS_PT[group]}</H1>
+        </View>
       </Row>
-      <Body dim style={{ marginBottom: spacing(2) }}>
-        Detalhe por subgrupo — revela desequilíbrios dentro do eixo.
-      </Body>
 
       {weakestSub && sub[weakestSub] && (
-        <Card color={colors.warn}>
-          <Small>Subgrupo mais atrás</Small>
-          <H3 style={{ color: colors.warn }}>
-            {SUBGROUP_LABELS_PT[weakestSub]} · P{Math.round(sub[weakestSub].score)}
-          </H3>
-          <Small style={{ marginTop: 2 }}>Focar aqui equilibra o eixo de {GROUP_LABELS_PT[group].toLowerCase()}.</Small>
-        </Card>
+        <GradientCard gradient={groupGradient[group]} glow={color}>
+          <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <Label color="rgba(255,255,255,0.85)">Subgrupo mais atrás</Label>
+            <Ionicons name="locate" size={18} color="#fff" />
+          </Row>
+          <Row style={{ alignItems: 'baseline', marginTop: spacing(0.5) }}>
+            <H1 style={{ color: '#fff' }}>{SUBGROUP_LABELS_PT[weakestSub]}</H1>
+            <H3 style={{ color: 'rgba(255,255,255,0.85)', marginLeft: spacing(1) }}>P{Math.round(sub[weakestSub].score)}</H3>
+          </Row>
+          <Body style={{ color: 'rgba(255,255,255,0.92)', marginTop: spacing(0.75) }}>
+            Focar aqui equilibra o eixo de {GROUP_LABELS_PT[group].toLowerCase()}.
+          </Body>
+        </GradientCard>
       )}
 
       {subs.map((s) => {
         const sc = sub[s];
         const list = exBySub[s] || [];
         return (
-          <Card key={s} color={color}>
-            <Row style={{ justifyContent: 'space-between', marginBottom: spacing(1) }}>
+          <Card key={s} accent={color}>
+            <Row style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: sc ? spacing(1) : 0 }}>
               <H3>{SUBGROUP_LABELS_PT[s]}</H3>
-              <Text style={{ color: sc ? colors.text : colors.textFaint, fontWeight: '800', fontSize: 18 }}>
-                {sc ? `P${Math.round(sc.score)}` : '—'}
-              </Text>
+              {sc ? (
+                <Display style={{ fontSize: 24, color: colors.text }}>P{Math.round(sc.score)}</Display>
+              ) : (
+                <Tiny>SEM DADOS</Tiny>
+              )}
             </Row>
 
             {sc ? (
               <>
-                <Bar value={sc.score} color={color} />
-                <Small style={{ marginTop: spacing(0.5) }}>
-                  Nível {LEVEL_LABELS_PT[levelFromPercentile(sc.score)]}
-                </Small>
+                <ProgressBar value={sc.score} gradient={groupGradient[group]} height={9} />
+                <Row style={{ marginTop: spacing(1) }}>
+                  <Badge label={LEVEL_LABELS_PT[levelFromPercentile(sc.score)]} color={color} />
+                </Row>
                 {list.map(({ ex, entry }, i) => (
-                  <Row key={i} style={{ justifyContent: 'space-between', marginTop: spacing(0.75) }}>
-                    <Body style={{ flex: 1, fontSize: 14 }}>{ex.name_pt}</Body>
-                    <Small style={{ color: colors.primary }}>P{Math.round(entry.percentile)}</Small>
+                  <Row key={i} style={{ justifyContent: 'space-between', marginTop: spacing(1) }}>
+                    <Body style={{ flex: 1, fontSize: 14, color: colors.textDim }} numberOfLines={1}>{ex.name_pt}</Body>
+                    <Small style={{ color: colors.primaryBright, fontFamily: fonts.bold }}>P{Math.round(entry.percentile)}</Small>
                   </Row>
                 ))}
               </>
             ) : (
               <Small style={{ color: colors.textFaint }}>
-                Sem dados. Registre um exercício de {SUBGROUP_LABELS_PT[s].toLowerCase()}.
+                Registre um exercício de {SUBGROUP_LABELS_PT[s].toLowerCase()} para preencher.
               </Small>
             )}
           </Card>
         );
       })}
 
-      <Button title="Voltar ao radar" variant="ghost" onPress={() => router.back()} style={{ marginTop: spacing(1) }} />
+      <Button title="Voltar ao radar" variant="ghost" icon={<Ionicons name="pulse" size={16} color={colors.text} />} onPress={() => router.back()} style={{ marginTop: spacing(0.5) }} />
     </Screen>
   );
 }
+
+const styles_back = {
+  width: 42, height: 42, borderRadius: 14,
+  backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder,
+  alignItems: 'center', justifyContent: 'center',
+};
