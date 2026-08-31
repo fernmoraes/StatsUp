@@ -1,5 +1,7 @@
 # StatsUp 📊💪
 
+> Aplicativo desenvolvido para a **CP4 de Mobile & IoT** — **FIAP**.
+
 Rastreador de academia que transforma sua força em um **radar de 4 eixos** (Peito,
 Costas, Braço, Perna). Cada eixo cresce conforme você fica mais forte **em relação à
 população** do mesmo sexo e peso corporal — força em **percentil**, não em carga bruta.
@@ -7,6 +9,16 @@ população** do mesmo sexo e peso corporal — força em **percentil**, não em
 Implementação dos documentos `conceito_do_app.md` (produto + motor de cálculo) e
 `padroes_de_forca_consolidado.md` (strength standards). Tudo **offline-first**: os
 padrões são dados estáticos embarcados e todo cálculo roda localmente.
+
+## Integrantes
+
+| Nome | RM |
+|---|---|
+| Weslley Cardoso | 557927 |
+| Fernando Navajas Moraes | 555080 |
+| Gabriel Terra Lilla dos Santos | 554575 |
+| José Guilherme Sipaúba Costa | 557274 |
+| Bruna da Costa Candeias | 558938 |
 
 ## Como rodar
 
