@@ -39,6 +39,12 @@ Tema escuro premium inspirado em **Whoop, Oura, Strava e Hevy**:
   preenchimento do radar; "auroras" de fundo e glow colorido nos cards.
 - **Glassmorphism**: cards translúcidos com borda hairline (`src/components/ui.js`).
 - **Anel de progresso** circular para o score geral (`ProgressRing`, estilo Whoop/Oura).
+- **Imagens dos exercícios** — GIFs demonstrativos da **API WorkoutX** (`api.workoutxapp.com`),
+  baixados no build e empacotados em `assets/exercises/` (offline-first, sem expor a API key
+  no app). Renderizados com `expo-image` (animado + cache) via `ExerciseImage`, com fallback
+  para um pictograma vetorial (`ExerciseFigure`) quando um exercício não tem GIF. Aparecem na
+  seleção de treino, no feedback, no onboarding, no sub-radar e em destaque na tela de
+  detalhe (`app/exercise/[id].js`). Mapeamento exercício→GIF em `src/data/exerciseMedia.js`.
 - Sistema de design centralizado em `src/theme.js` (cores, gradientes, tipografia,
   espaçamento, raios, sombras/glow).
 

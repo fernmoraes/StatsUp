@@ -1,0 +1,60 @@
+// Mapa de mídia: id do exercício StatsUp -> GIF demonstrativo (WorkoutX).
+// GIFs baixados da API WorkoutX e empacotados localmente (offline-first, sem expor a API key).
+// Exercícios sem GIF caem no pictograma vetorial (ExerciseFigure).
+const GIFS = {
+  "back_squat": require("../../assets/exercises/back_squat.gif"),
+  "barbell_curl": require("../../assets/exercises/barbell_curl.gif"),
+  "barbell_row": require("../../assets/exercises/barbell_row.gif"),
+  "barbell_shrug": require("../../assets/exercises/barbell_shrug.gif"),
+  "bench_press": require("../../assets/exercises/bench_press.gif"),
+  "bulgarian_split_squat": require("../../assets/exercises/bulgarian_split_squat.gif"),
+  "cable_curl": require("../../assets/exercises/cable_curl.gif"),
+  "cable_fly": require("../../assets/exercises/cable_fly.gif"),
+  "cable_pull_through": require("../../assets/exercises/cable_pull_through.gif"),
+  "chest_dips": require("../../assets/exercises/chest_dips.gif"),
+  "close_grip_bench": require("../../assets/exercises/close_grip_bench.gif"),
+  "deadlift": require("../../assets/exercises/deadlift.gif"),
+  "decline_bench": require("../../assets/exercises/decline_bench.gif"),
+  "dumbbell_bench": require("../../assets/exercises/dumbbell_bench.gif"),
+  "dumbbell_curl": require("../../assets/exercises/dumbbell_curl.gif"),
+  "dumbbell_fly": require("../../assets/exercises/dumbbell_fly.gif"),
+  "dumbbell_row": require("../../assets/exercises/dumbbell_row.gif"),
+  "front_raise": require("../../assets/exercises/front_raise.gif"),
+  "front_squat": require("../../assets/exercises/front_squat.gif"),
+  "glute_bridge": require("../../assets/exercises/glute_bridge.gif"),
+  "goblet_squat": require("../../assets/exercises/goblet_squat.gif"),
+  "good_morning": require("../../assets/exercises/good_morning.gif"),
+  "hack_squat": require("../../assets/exercises/hack_squat.gif"),
+  "hammer_curl": require("../../assets/exercises/hammer_curl.gif"),
+  "incline_bench": require("../../assets/exercises/incline_bench.gif"),
+  "incline_db_bench": require("../../assets/exercises/incline_db_bench.gif"),
+  "lat_pulldown": require("../../assets/exercises/lat_pulldown.gif"),
+  "lateral_raise": require("../../assets/exercises/lateral_raise.gif"),
+  "leg_extension": require("../../assets/exercises/leg_extension.gif"),
+  "leg_press": require("../../assets/exercises/leg_press.gif"),
+  "machine_chest_press": require("../../assets/exercises/machine_chest_press.gif"),
+  "machine_shoulder_press": require("../../assets/exercises/machine_shoulder_press.gif"),
+  "nordic_curl": require("../../assets/exercises/nordic_curl.gif"),
+  "overhead_press": require("../../assets/exercises/overhead_press.gif"),
+  "overhead_triceps_ext": require("../../assets/exercises/overhead_triceps_ext.gif"),
+  "pec_deck": require("../../assets/exercises/pec_deck.gif"),
+  "pistol_squat": require("../../assets/exercises/pistol_squat.gif"),
+  "preacher_curl": require("../../assets/exercises/preacher_curl.gif"),
+  "pull_up": require("../../assets/exercises/pull_up.gif"),
+  "push_ups": require("../../assets/exercises/push_ups.gif"),
+  "rdl": require("../../assets/exercises/rdl.gif"),
+  "seated_cable_row": require("../../assets/exercises/seated_cable_row.gif"),
+  "seated_calf_raise": require("../../assets/exercises/seated_calf_raise.gif"),
+  "seated_db_press": require("../../assets/exercises/seated_db_press.gif"),
+  "seated_leg_curl": require("../../assets/exercises/seated_leg_curl.gif"),
+  "skullcrusher": require("../../assets/exercises/skullcrusher.gif"),
+  "standing_calf_raise": require("../../assets/exercises/standing_calf_raise.gif"),
+  "t_bar_row": require("../../assets/exercises/t_bar_row.gif"),
+  "triceps_pushdown": require("../../assets/exercises/triceps_pushdown.gif"),
+};
+
+export function getExerciseGif(id) {
+  return GIFS[id] || null;
+}
+
+export default GIFS;

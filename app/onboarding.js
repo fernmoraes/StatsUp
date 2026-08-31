@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import {
-  View, Text, TextInput, StyleSheet, Pressable, Animated, Easing,
+  View, Text, TextInput, StyleSheet, Pressable, Animated, Easing, ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,11 +12,12 @@ import {
 } from '../src/components/ui';
 import RadarChart from '../src/components/RadarChart';
 import ProgressRing from '../src/components/ProgressRing';
+import ExerciseImage from '../src/components/ExerciseImage';
 import {
   colors, spacing, radius, font, fonts, groupColor, groupGradient, gradients, hexA,
 } from '../src/theme';
 import { GOALS } from '../src/data/goals';
-import { ONBOARDING_ANCHORS, getExercise, GROUP_LABELS_PT } from '../src/data/exercises';
+import { ONBOARDING_ANCHORS, getExercise, GROUP_LABELS_PT, exercisesByGroup } from '../src/data/exercises';
 import { buildRadarState } from '../src/engine/selectors';
 import { LEVEL_LABELS_PT } from '../src/data/levels';
 
@@ -46,6 +47,7 @@ export default function Onboarding() {
   const { completeOnboarding } = useApp();
 
   const [step, setStep] = useState(0);
+  const [anchorIdx, setAnchorIdx] = useState(0);
   const [sex, setSex] = useState('male');
   const [day, setDay] = useState('');
   const [month, setMonth] = useState('');
@@ -203,73 +205,86 @@ export default function Onboarding() {
       )}
 
       {/* ---------------------------------------------------------- passo 2 */}
-      {step === 2 && (
-        <View>
-          <Label>Passo 3 de 3</Label>
-          <H1 style={{ marginTop: 4 }}>Exercícios-âncora</H1>
-          <Body style={{ color: colors.textDim, marginTop: spacing(1), marginBottom: spacing(2) }}>
-            Um por grupo. Peso × reps (ou só reps). Pode pular o que não faz.
-          </Body>
+      {step === 2 && (() => {
+        const a = ONBOARDING_ANCHORS[anchorIdx];
+        const group = a.group;
+        const state = anchors[group];
+        const ex = getExercise(state.exerciseId);
+        const repsOnly = ex.metric === 'reps';
+        const groupExs = exercisesByGroup(group);
+        const isLast = anchorIdx === ONBOARDING_ANCHORS.length - 1;
 
-          {ONBOARDING_ANCHORS.map((a) => {
-            const state = anchors[a.group];
-            const ex = getExercise(state.exerciseId);
-            const alt = a.altExerciseId ? getExercise(a.altExerciseId) : null;
-            const repsOnly = ex.metric === 'reps';
-            return (
-              <Card key={a.group} accent={groupColor[a.group]} style={state.skipped ? { opacity: 0.6 } : null}>
-                <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Row>
-                    <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: groupColor[a.group], marginRight: spacing(1) }} />
-                    <H3 style={{ color: groupColor[a.group] }}>{GROUP_LABELS_PT[a.group]}</H3>
-                  </Row>
-                  <Pressable onPress={() => setAnchor(a.group, { skipped: !state.skipped })} hitSlop={8}>
-                    <Tiny style={{ color: state.skipped ? colors.warn : colors.textFaint }}>
-                      {state.skipped ? 'PULADO · REATIVAR' : 'NÃO FAÇO'}
-                    </Tiny>
+        const onNext = () => (isLast ? handleGenerate() : setAnchorIdx(anchorIdx + 1));
+        const onBack = () => (anchorIdx === 0 ? setStep(1) : setAnchorIdx(anchorIdx - 1));
+
+        return (
+          <View>
+            <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <Label>Passo 3 · grupo {anchorIdx + 1} de {ONBOARDING_ANCHORS.length}</Label>
+              <Pressable onPress={() => setAnchor(group, { skipped: !state.skipped })} hitSlop={8}>
+                <Tiny style={{ color: state.skipped ? colors.warn : colors.textFaint }}>
+                  {state.skipped ? 'PULADO · REATIVAR' : 'NÃO FAÇO ISSO'}
+                </Tiny>
+              </Pressable>
+            </Row>
+            <H1 style={{ marginTop: 4, color: groupColor[group] }}>{GROUP_LABELS_PT[group]}</H1>
+            <Body style={{ color: colors.textDim, marginTop: spacing(0.5), marginBottom: spacing(1.5) }}>
+              Escolha um exercício que você faz e diga quanto levanta.
+            </Body>
+
+            <GradientCard gradient={groupGradient[group]} glow={groupColor[group]} style={{ alignItems: 'center', paddingVertical: spacing(2), opacity: state.skipped ? 0.5 : 1 }}>
+              <ExerciseImage exerciseId={state.exerciseId} size={176} radius={20} light />
+              <H2 style={{ color: '#fff', marginTop: spacing(1.5), textAlign: 'center' }} numberOfLines={2}>{ex.name_pt}</H2>
+              <Small style={{ color: 'rgba(255,255,255,0.85)' }}>
+                {ex.equipment}{ex.per_dumbbell ? ' · por halter' : ''}{repsOnly ? ' · repetições' : ''}
+              </Small>
+            </GradientCard>
+
+            <Label style={{ marginTop: spacing(0.5), marginBottom: spacing(1) }}>Escolha o exercício</Label>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing(1), paddingRight: spacing(2) }} style={{ marginBottom: spacing(1.5) }}>
+              {groupExs.map((e) => {
+                const active = state.exerciseId === e.id;
+                return (
+                  <Pressable key={e.id} onPress={() => setAnchor(group, { exerciseId: e.id })} style={[styles.altChip, active && { borderColor: groupColor[group], backgroundColor: hexA(groupColor[group], 0.16) }]}>
+                    <Text style={[styles.altChipText, active && { color: colors.text, fontFamily: fonts.semibold }]}>{e.name_pt}</Text>
                   </Pressable>
-                </Row>
+                );
+              })}
+            </ScrollView>
 
-                {alt ? (
-                  <Row style={{ marginTop: spacing(1.25) }}>
-                    {[a.exerciseId, a.altExerciseId].map((eid) => {
-                      const e = getExercise(eid);
-                      const active = state.exerciseId === eid;
-                      return (
-                        <Pressable key={eid} onPress={() => setAnchor(a.group, { exerciseId: eid })} style={[styles.altChip, active && { borderColor: groupColor[a.group], backgroundColor: hexA(groupColor[a.group], 0.16) }]}>
-                          <Text style={[styles.altChipText, active && { color: colors.text, fontFamily: fonts.semibold }]}>{e.name_pt}</Text>
-                        </Pressable>
-                      );
-                    })}
-                  </Row>
-                ) : (
-                  <Body style={{ marginTop: spacing(0.75), color: colors.textDim }}>{ex.name_pt}</Body>
+            {!state.skipped && (
+              <Row>
+                {!repsOnly && (
+                  <View style={{ flex: 1, marginRight: spacing(1.5) }}>
+                    <Tiny style={{ marginBottom: 5 }}>PESO (KG){ex.per_dumbbell ? ' · HALTER' : ''}</Tiny>
+                    <TextInput style={[inputStyle, { textAlign: 'center', fontSize: 20, fontFamily: fonts.extra }]} placeholder="0" placeholderTextColor={colors.textFaint} keyboardType="numeric" value={state.weight} onChangeText={(t) => setAnchor(group, { weight: t })} />
+                  </View>
                 )}
+                <View style={{ flex: 1 }}>
+                  <Tiny style={{ marginBottom: 5 }}>{repsOnly ? 'REPETIÇÕES MÁX.' : 'REPS'}</Tiny>
+                  <TextInput style={[inputStyle, { textAlign: 'center', fontSize: 20, fontFamily: fonts.extra }]} placeholder="0" placeholderTextColor={colors.textFaint} keyboardType="number-pad" value={state.reps} onChangeText={(t) => setAnchor(group, { reps: t })} />
+                </View>
+              </Row>
+            )}
 
-                {!state.skipped && (
-                  <Row style={{ marginTop: spacing(1.5) }}>
-                    {!repsOnly && (
-                      <View style={{ flex: 1, marginRight: spacing(1.5) }}>
-                        <Tiny style={{ marginBottom: 5 }}>PESO (KG){ex.per_dumbbell ? ' · HALTER' : ''}</Tiny>
-                        <TextInput style={[inputStyle, { textAlign: 'center' }]} placeholder="0" placeholderTextColor={colors.textFaint} keyboardType="numeric" value={state.weight} onChangeText={(t) => setAnchor(a.group, { weight: t })} />
-                      </View>
-                    )}
-                    <View style={{ flex: 1 }}>
-                      <Tiny style={{ marginBottom: 5 }}>{repsOnly ? 'REPETIÇÕES MÁX.' : 'REPS'}</Tiny>
-                      <TextInput style={[inputStyle, { textAlign: 'center' }]} placeholder="0" placeholderTextColor={colors.textFaint} keyboardType="number-pad" value={state.reps} onChangeText={(t) => setAnchor(a.group, { reps: t })} />
-                    </View>
-                  </Row>
-                )}
-              </Card>
-            );
-          })}
+            <Row style={{ justifyContent: 'center', marginTop: spacing(2), marginBottom: spacing(1) }}>
+              {ONBOARDING_ANCHORS.map((_, i) => (
+                <View key={i} style={{ width: i === anchorIdx ? 22 : 7, height: 7, borderRadius: 4, marginHorizontal: 3, backgroundColor: i === anchorIdx ? groupColor[group] : i < anchorIdx ? colors.primary : colors.glassStrong }} />
+              ))}
+            </Row>
 
-          <Row style={{ marginTop: spacing(1) }}>
-            <Button title="Voltar" variant="ghost" onPress={() => setStep(1)} style={{ flex: 1, marginRight: spacing(1) }} />
-            <Button title={anchorInputs.length ? 'Gerar radar' : 'Pular tudo'} icon={<Ionicons name="sparkles" size={16} color="#fff" />} onPress={handleGenerate} style={{ flex: 1.5 }} />
-          </Row>
-        </View>
-      )}
+            <Row>
+              <Button title="Voltar" variant="ghost" onPress={onBack} style={{ flex: 1, marginRight: spacing(1) }} />
+              <Button
+                title={isLast ? (anchorInputs.length ? 'Gerar radar' : 'Pular tudo') : 'Próximo'}
+                icon={<Ionicons name={isLast ? 'sparkles' : 'arrow-forward'} size={16} color="#fff" />}
+                onPress={onNext}
+                style={{ flex: 1.5 }}
+              />
+            </Row>
+          </View>
+        );
+      })()}
 
       {step === 3 && <Reveal radar={previewRadar} onDone={() => router.replace('/(tabs)')} />}
     </Screen>

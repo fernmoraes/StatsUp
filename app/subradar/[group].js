@@ -7,6 +7,7 @@ import {
   Screen, Display, H1, H3, Body, Small, Tiny, Label,
   Card, GradientCard, Row, Badge, Button, ProgressBar,
 } from '../../src/components/ui';
+import ExerciseImage from '../../src/components/ExerciseImage';
 import { colors, spacing, groupColor, groupGradient, fonts, hexA } from '../../src/theme';
 import {
   SUBGROUPS_BY_GROUP, SUBGROUP_LABELS_PT, GROUP_LABELS_PT, getExercise,
@@ -91,10 +92,13 @@ export default function SubRadar() {
                   <Badge label={LEVEL_LABELS_PT[levelFromPercentile(sc.score)]} color={color} />
                 </Row>
                 {list.map(({ ex, entry }, i) => (
-                  <Row key={i} style={{ justifyContent: 'space-between', marginTop: spacing(1) }}>
-                    <Body style={{ flex: 1, fontSize: 14, color: colors.textDim }} numberOfLines={1}>{ex.name_pt}</Body>
+                  <Pressable key={i} onPress={() => router.push(`/exercise/${ex.id}`)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing(1) }}>
+                    <Row style={{ flex: 1 }}>
+                      <ExerciseImage exerciseId={ex.id} size={34} radius={9} color={color} style={{ marginRight: spacing(1) }} />
+                      <Body style={{ flex: 1, fontSize: 14, color: colors.textDim }} numberOfLines={1}>{ex.name_pt}</Body>
+                    </Row>
                     <Small style={{ color: colors.primaryBright, fontFamily: fonts.bold }}>P{Math.round(entry.percentile)}</Small>
-                  </Row>
+                  </Pressable>
                 ))}
               </>
             ) : (
