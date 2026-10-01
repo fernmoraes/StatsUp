@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>StatsUp</title>
+  <meta name="description" content="StatsUp — sua força em percentil. Confirmação de e-mail da conta." />
+  <meta name="theme-color" content="#0F0D0D" />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* Mesmo design system do app (src/theme.js): carvão quente + vermelho da logo. */
+    :root {
+      --bg: #0F0D0D;
+      --bg2: #151212;
+      --surface: #1B1717;
+      --border: rgba(255, 240, 238, 0.08);
+      --text: #F8F4F3;
+      --text-dim: #B5ABA9;
+      --text-faint: #726866;
+      --primary: #DE1C1D;
+      --primary-bright: #FF5451;
+      --good: #2FC48D;
+      --warn: #F2A93B;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      background-image: radial-gradient(120% 55% at 85% 0%, rgba(222, 28, 29, 0.22), rgba(222, 28, 29, 0) 60%);
+      color: var(--text);
+      font-family: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    main {
+      min-height: 100dvh;
+      max-width: 440px;
+      margin: 0 auto;
+      padding: max(32px, env(safe-area-inset-top)) 20px max(32px, env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      width: 44px; height: 44px; border-radius: 12px; background: var(--primary);
+      display: grid; place-items: center;
+      box-shadow: 0 8px 24px rgba(222, 28, 29, 0.35);
+    }
+    .brand-mark img { width: 30px; height: auto; }
+    .brand-name {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 22px;
+      letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .content { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 40px 0; }
+    .state[hidden] { display: none; }
+
+    .status-icon {
+      width: 72px; height: 72px; border-radius: 18px; display: grid; place-items: center;
+      margin-bottom: 24px;
+    }
+    .status-icon.good { background: rgba(47, 196, 141, 0.14); color: var(--good); }
+    .status-icon.warn { background: rgba(242, 169, 59, 0.14); color: var(--warn); }
+    .status-icon.brand { background: rgba(222, 28, 29, 0.16); color: var(--primary-bright); }
+    .status-icon svg { width: 38px; height: 38px; }
+    .draw {
+      stroke-dasharray: 40; stroke-dashoffset: 40;
+      animation: draw 0.55s 0.15s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+    }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+
+    .eyebrow {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 13px;
+      letter-spacing: 1.6px; text-transform: uppercase; color: var(--text-faint);
+    }
+    h1 {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 46px; line-height: 1;
+      text-transform: uppercase; letter-spacing: 0.2px; margin: 6px 0 14px;
+      text-wrap: balance;
+    }
+    .lead { font-size: 17px; line-height: 1.5; color: var(--text-dim); max-width: 34ch; }
+
+    .card {
+      margin-top: 28px; padding: 18px; border-radius: 16px;
+      background: var(--surface); border: 1px solid var(--border);
+    }
+    .card-title {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 18px;
+      letter-spacing: 0.6px; text-transform: uppercase; margin-bottom: 12px;
+    }
+    ol.steps { list-style: none; padding: 0; display: grid; gap: 12px; counter-reset: step; }
+    ol.steps li { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; line-height: 1.45; color: var(--text-dim); }
+    ol.steps li::before {
+      counter-increment: step; content: counter(step);
+      flex: none; width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center;
+      background: var(--primary); color: #fff;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 15px;
+    }
+    ol.steps strong { color: var(--text); font-weight: 600; }
+    .note { margin-top: 14px; font-size: 13px; color: var(--text-faint); line-height: 1.5; }
+
+    footer { font-size: 13px; color: var(--text-faint); text-align: center; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .draw { animation: none; stroke-dashoffset: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="brand">
+      <div class="brand-mark"><img src="assets/logo-mark.png" alt="" /></div>
+      <span class="brand-name">StatsUp</span>
+    </header>
+
+    <div class="content" aria-live="polite">
+      <!-- Confirmado -->
+      <section class="state" id="state-confirmed" hidden>
+        <div class="status-icon good" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path class="draw" d="M5 12.5l4.5 4.5L19 7.5" />
+          </svg>
+        </div>
+        <p class="eyebrow">Conta ativada</p>
+        <h1>E-mail confirmado</h1>
+        <p class="lead">Sua conta do StatsUp está pronta. Pode voltar para o app.</p>
+        <div class="card">
+          <p class="card-title">Próximos passos</p>
+          <ol class="steps">
+            <li><span>Abra o <strong>StatsUp</strong> no seu celular.</span></li>
+            <li><span>Toque em <strong>Entrar</strong> e use o e-mail e a senha do cadastro.</span></li>
+            <li><span>Responda as perguntas iniciais e veja seu <strong>radar de força</strong>.</span></li>
+          </ol>
+          <p class="note">Já pode fechar esta página.</p>
+        </div>
+      </section>
+
+      <!-- Link expirado ou já usado -->
+      <section class="state" id="state-expired" hidden>
+        <div class="status-icon warn" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9" /><path d="M12 7.5V12l3 2" />
+          </svg>
+        </div>
+        <p class="eyebrow">Não foi possível confirmar</p>
+        <h1>Link expirado</h1>
+        <p class="lead">Esse link já foi usado ou passou do prazo. Se você já confirmou antes, é só entrar no app normalmente.</p>
+        <div class="card">
+          <p class="card-title">Precisa de um link novo?</p>
+          <ol class="steps">
+            <li><span>No app, toque em <strong>Criar conta</strong>.</span></li>
+            <li><span>Cadastre-se de novo com o <strong>mesmo e-mail</strong>.</span></li>
+            <li><span>Abra o e-mail novo e toque no link logo em seguida.</span></li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- Outro erro -->
+      <section class="state" id="state-error" hidden>
+        <div class="status-icon warn" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 8v5" /><path d="M12 16.5h.01" /><circle cx="12" cy="12" r="9" />
+          </svg>
+        </div>
+        <p class="eyebrow">Algo deu errado</p>
+        <h1>Não confirmamos</h1>
+        <p class="lead" id="error-text">Não foi possível confirmar seu e-mail. Tente abrir o link de novo pelo e-mail.</p>
+      </section>
+
+      <!-- Acesso direto (sem link de confirmação) -->
+      <section class="state" id="state-home" hidden>
+        <div class="status-icon brand" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M12 8l4 2.3v4.4L12 17l-4-2.3v-4.4z" />
+          </svg>
+        </div>
+        <p class="eyebrow">App de academia</p>
+        <h1>Sua força, em percentil</h1>
+        <p class="lead">O StatsUp compara cada levantamento com pessoas do seu sexo, peso e idade e monta um radar de força com 6 grupos musculares.</p>
+        <p class="note">Esta página confirma os e-mails de cadastro do app.</p>
+      </section>
+    </div>
+
+    <footer>StatsUp · FIAP · Mobile &amp; IoT</footer>
+  </main>
+
+  <script>
+    // O Supabase volta para cá depois de verificar o link do e-mail, com o
+    // resultado no fragmento (#...) ou na query (?...).
+    (function () {
+      var params = new URLSearchParams(location.hash.replace(/^#/, ''));
+      new URLSearchParams(location.search).forEach(function (v, k) { if (!params.has(k)) params.set(k, v); });
+
+      var state = 'home';
+      var errorCode = params.get('error_code') || params.get('error');
+      if (errorCode) {
+        state = /expired|otp/i.test(errorCode) ? 'expired' : 'error';
+        var desc = params.get('error_description');
+        if (state === 'error' && desc) {
+          document.getElementById('error-text').textContent =
+            'Não foi possível confirmar seu e-mail (' + desc.replace(/\+/g, ' ') + '). Tente abrir o link de novo pelo e-mail.';
+        }
+      } else if (params.get('access_token') || params.get('code') || params.get('type') === 'signup') {
+        state = 'confirmed';
+      }
+
+      // Não deixa o token de acesso na barra de endereço/histórico.
+      if (location.hash || location.search) {
+        history.replaceState(null, '', location.pathname);
+      }
+
+      document.getElementById('state-' + state).hidden = false;
+      document.title = {
+        confirmed: 'E-mail confirmado · StatsUp',
+        expired: 'Link expirado · StatsUp',
+        error: 'Erro na confirmação · StatsUp',
+        home: 'StatsUp',
+      }[state];
+    })();
+  </script>
+</body>
+</html>

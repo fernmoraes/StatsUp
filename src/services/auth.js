@@ -1,7 +1,7 @@
 // Contas via Supabase Auth (e-mail + senha). Mesma interface da versão local:
 // signUp / signIn / signOut / restoreSession — as telas não mudam.
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase, setRememberSession, isRememberingSession } from '../lib/supabase';
+import { supabase, setRememberSession, isRememberingSession } from './supabase';
 
 const K_LAST_EMAIL = 'statsup:last-email:v1'; // preenche o login
 // Última conta logada com "Salvar conta": permite abrir o app sem internet.
@@ -71,7 +71,11 @@ export async function signUp({ name, email, password }) {
     res = await supabase.auth.signUp({
       email: normalizeEmail(email),
       password,
-      options: { data: { name: cleanName } },
+      options: {
+        data: { name: cleanName },
+        // Depois de confirmar, o link abre a página do StatsUp (site/).
+        emailRedirectTo: process.env.EXPO_PUBLIC_AUTH_REDIRECT_URL,
+      },
     });
   } catch (e) {
     throw translate(e);

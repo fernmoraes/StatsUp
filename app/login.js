@@ -7,7 +7,7 @@ import { Screen, Button } from '../src/components/ui';
 import {
   AuthHeader, Field, PasswordField, Checkbox, FormError, FormNotice, SwitchLink,
 } from '../src/components/authForm';
-import { getLastEmail, isValidEmail } from '../src/storage/auth';
+import { getLastEmail, isValidEmail } from '../src/services/auth';
 
 export default function Login() {
   const router = useRouter();

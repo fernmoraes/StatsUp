@@ -18,8 +18,8 @@ import {
   isTutorialDone,
   setTutorialDone,
 } from '../storage/store';
-import * as auth from '../storage/auth';
-import { pushAll, pullAll } from '../storage/sync';
+import * as auth from '../services/auth';
+import { pushAll, pullAll } from '../services/sync';
 import { getExercise } from '../data/exercises';
 import { computeEntry } from '../engine/calc';
 import { buildRadarState } from '../engine/selectors';

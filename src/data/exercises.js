@@ -1,5 +1,5 @@
 // Catálogo de exercícios + strength standards embarcados (offline-first).
-// Dados extraídos de `padroes_de_forca_consolidado.md`.
+// Dados extraídos de `docs/padroes_de_forca_consolidado.md`.
 //
 // Cada exercício carrega `standards.{male,female}` em UMA das formas:
 //   - byBW : { 50:[beg,nov,int,adv,elite], 60:[...], ... }  valores de 1RM (kg) por peso corporal

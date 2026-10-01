@@ -7,7 +7,7 @@ import { Screen, Button, Tiny } from '../src/components/ui';
 import {
   AuthHeader, Field, PasswordField, FormError, SwitchLink,
 } from '../src/components/authForm';
-import { isValidEmail, MIN_PASSWORD } from '../src/storage/auth';
+import { isValidEmail, MIN_PASSWORD } from '../src/services/auth';
 import { spacing } from '../src/theme';
 
 export default function Register() {

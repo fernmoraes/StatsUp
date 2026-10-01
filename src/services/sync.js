@@ -5,7 +5,7 @@
 //   - ao entrar/abrir, primeiro envia o que estiver pendente e depois baixa
 //     tudo da nuvem (pull), que passa a ser o estado oficial do aparelho.
 // O app não apaga treinos, então o push é um upsert do estado inteiro.
-import { supabase } from '../lib/supabase';
+import { supabase } from './supabase';
 
 // --------------------------------------------------------------- app → banco
 const profileRow = (userId, p) => ({
