@@ -7,10 +7,8 @@ const kLogs = (userId) => `statsup:${userId}:logs:v1`;
 // Há mudanças locais ainda não enviadas para a nuvem.
 const kDirty = (userId) => `statsup:${userId}:dirty:v1`;
 
-// Versões anteriores: dados sem dono e contas locais (antes do Supabase).
-const LEGACY_PROFILE = 'statsup:profile:v1';
-const LEGACY_LOGS = 'statsup:logs:v1';
-const LOCAL_ACCOUNTS = 'statsup:accounts:v1';
+// Cada conta só enxerga as próprias chaves: uma conta nova começa vazia e
+// nunca herda dados de outra conta ou de versões antigas do app.
 
 const readJSON = async (key, fallback) => {
   try {
@@ -41,30 +39,4 @@ export async function setDirty(userId, dirty) {
   else await AsyncStorage.removeItem(kDirty(userId));
 }
 
-// Dados criados antes desta conta existir na nuvem passam para ela (uma vez):
-//   1. a conta LOCAL com o mesmo e-mail (versão anterior do login);
-//   2. os dados sem dono (de antes de existir login).
-// Só acontece se esta conta ainda não tem nada no aparelho. Retorna true se
-// trouxe algo (o chamador então marca para enviar à nuvem).
-export async function claimLocalData(userId, email) {
-  if ((await loadProfile(userId)) || (await loadLogs(userId)).length) return false;
 
-  const accounts = await readJSON(LOCAL_ACCOUNTS, {});
-  const local = accounts[email];
-  let sources = null;
-  if (local) sources = [`statsup:${local.id}:profile:v1`, `statsup:${local.id}:logs:v1`];
-  else sources = [LEGACY_PROFILE, LEGACY_LOGS];
-
-  const [[, profile], [, logs]] = await AsyncStorage.multiGet(sources);
-  if (!profile && !logs) return false;
-  const pairs = [];
-  if (profile) pairs.push([kProfile(userId), profile]);
-  if (logs) pairs.push([kLogs(userId), logs]);
-  await AsyncStorage.multiSet(pairs);
-  await AsyncStorage.multiRemove(sources);
-  if (local) {
-    delete accounts[email];
-    await AsyncStorage.setItem(LOCAL_ACCOUNTS, JSON.stringify(accounts));
-  }
-  return true;
-}

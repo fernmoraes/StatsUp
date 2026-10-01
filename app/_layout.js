@@ -20,6 +20,7 @@ import {
 } from '@expo-google-fonts/barlow-condensed';
 import { AppProvider, useApp } from '../src/state/AppContext';
 import AnimatedSplash from '../src/components/AnimatedSplash';
+import { DialogProvider } from '../src/components/dialog';
 import { colors } from '../src/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -45,7 +46,9 @@ export default function RootLayout() {
         {/* Android: esconde a barra de navegação do sistema. Deslizar de baixo
             mostra ela por cima do app e ela some sozinha depois de alguns segundos. */}
         <NavigationBar hidden style="light" />
-        <RootContent fontsReady={fontsReady} />
+        <DialogProvider>
+          <RootContent fontsReady={fontsReady} />
+        </DialogProvider>
       </AppProvider>
     </SafeAreaProvider>
   );

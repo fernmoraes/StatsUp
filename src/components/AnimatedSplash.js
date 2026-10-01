@@ -21,7 +21,10 @@ const WORD_H = Math.round((WORD_W * 262) / 291);
 const GAP = 14;
 const BAR_W = 120;
 const BAR_SPACE = 22 + 3; // margem + altura da barra
-// Quanto o torso sobe para o conjunto (torso + texto + barra) ficar centralizado.
+const RING = Math.round(MARK_W * 1.2);
+// Torso, texto e barra formam UMA coluna centralizada pelo flexbox. No início
+// ela desce LIFT para o torso ficar no centro exato da tela (igual ao splash
+// nativo); quando o texto entra, sobe até o conjunto todo ficar centralizado.
 const LIFT = (GAP + WORD_H + BAR_SPACE) / 2;
 
 const MIN_INTRO_MS = 1500; // tempo mínimo para a animação ser lida
@@ -117,41 +120,38 @@ export default function AnimatedSplash({ ready, onLayout, onDone }) {
       {/* conteúdo some um pouco antes da cortina terminar */}
       <Animated.View style={[styles.center, { opacity: exit.interpolate({ inputRange: [0, 0.6], outputRange: [1, 0], extrapolate: 'clamp' }) }]}>
         <Animated.View
-          style={{
-            alignItems: 'center',
-            justifyContent: 'center',
-            transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [0, -LIFT] }) }],
-          }}
-        >
-          {!reduceMotion && (
-            <>
-              <Animated.View style={[styles.ring, ringStyle(ring1)]} />
-              <Animated.View style={[styles.ring, ringStyle(ring2)]} />
-            </>
-          )}
-          <Animated.Image
-            source={MARK}
-            style={{ width: MARK_W, height: MARK_H, transform: [{ scale: reduceMotion ? 1 : pulse }] }}
-            resizeMode="contain"
-          />
-        </Animated.View>
-
-        <Animated.View
           style={[
-            styles.below,
-            {
-              opacity: word,
-              transform: [
-                { translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [0, -LIFT] }) },
-                { translateY: word.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) },
-              ],
-            },
+            styles.column,
+            { transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [LIFT, 0] }) }] },
           ]}
         >
-          <Image source={WORD} style={{ width: WORD_W, height: WORD_H }} resizeMode="contain" />
-          <View style={styles.barTrack}>
-            <Animated.View style={[styles.barFill, { transform: [{ scaleX: progress }] }]} />
+          <View style={styles.markBox}>
+            {!reduceMotion && (
+              <>
+                <Animated.View style={[styles.ring, ringStyle(ring1)]} />
+                <Animated.View style={[styles.ring, ringStyle(ring2)]} />
+              </>
+            )}
+            <Animated.Image
+              source={MARK}
+              style={{ width: MARK_W, height: MARK_H, transform: [{ scale: reduceMotion ? 1 : pulse }] }}
+              resizeMode="contain"
+            />
           </View>
+
+          <Animated.View
+            style={{
+              alignItems: 'center',
+              marginTop: GAP,
+              opacity: word,
+              transform: [{ translateY: word.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
+            }}
+          >
+            <Image source={WORD} style={{ width: WORD_W, height: WORD_H }} resizeMode="contain" />
+            <View style={styles.barTrack}>
+              <Animated.View style={[styles.barFill, { transform: [{ scaleX: progress }] }]} />
+            </View>
+          </Animated.View>
         </Animated.View>
       </Animated.View>
     </Animated.View>
@@ -160,21 +160,19 @@ export default function AnimatedSplash({ ready, onLayout, onDone }) {
 
 const styles = StyleSheet.create({
   root: { zIndex: 100, elevation: 100, overflow: 'hidden', backgroundColor: colors.primary },
-  center: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  column: { alignItems: 'center' },
+  markBox: { width: MARK_W, height: MARK_H, alignItems: 'center', justifyContent: 'center' },
+  // Posição explícita (centrada no torso), sem depender de alinhamento automático.
   ring: {
     position: 'absolute',
-    width: MARK_W * 1.2,
-    height: MARK_W * 1.2,
-    borderRadius: MARK_W,
+    left: (MARK_W - RING) / 2,
+    top: (MARK_H - RING) / 2,
+    width: RING,
+    height: RING,
+    borderRadius: RING / 2,
     borderWidth: 2,
     borderColor: '#fff',
-  },
-  // Texto + barra ficam logo abaixo do torso (que começa no centro exato).
-  below: {
-    position: 'absolute',
-    top: '50%',
-    marginTop: MARK_H / 2 + GAP,
-    alignItems: 'center',
   },
   barTrack: {
     width: BAR_W,

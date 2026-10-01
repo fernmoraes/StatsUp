@@ -15,7 +15,6 @@ import {
   saveLogs,
   isDirty,
   setDirty,
-  claimLocalData,
 } from '../storage/store';
 import * as auth from '../storage/auth';
 import { pushAll, pullAll } from '../storage/sync';
@@ -105,11 +104,9 @@ export function AppProvider({ children }) {
       if (dirty) await pushAll(uid, p, l);
       if (pull) {
         const remote = await pullAll(uid);
-        if (!remote.profile && p) {
-          // Nuvem vazia mas o aparelho tem dados (ex.: conta antiga): envia.
-          await pushAll(uid, p, l);
-        } else if (remote.profile && writeSeq.current === seq && userRef.current?.id === uid) {
-          // Nada mudou localmente durante o sync: a nuvem vira o estado oficial.
+        // A nuvem é o estado oficial da conta (o que estava pendente já foi
+        // enviado acima). Só não aplica se houve escrita local durante o sync.
+        if (writeSeq.current === seq && userRef.current?.id === uid) {
           await saveProfile(uid, remote.profile);
           await saveLogs(uid, remote.logs);
           setProfile(remote.profile);
@@ -135,7 +132,6 @@ export function AppProvider({ children }) {
   // refazer as perguntas iniciais à toa.
   const loadUserData = useCallback(async (u) => {
     userRef.current = u;
-    if (await claimLocalData(u.id, u.email)) await setDirty(u.id, true);
     const [p, l] = await Promise.all([loadProfile(u.id), loadLogs(u.id)]);
     const migrated = migrateLogs(l || []);
     if (migrated.changed) {

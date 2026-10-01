@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
+import { useApp } from '../../src/state/AppContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts } from '../../src/theme';
@@ -29,6 +30,10 @@ export default function TabsLayout() {
   // Android edge-to-edge, a barra do sistema ficava por cima das abas.
   const insets = useSafeAreaInsets();
   const bottom = Math.max(insets.bottom, 8);
+  // Sem conta → login; conta sem perfil (ex.: dados apagados na nuvem) → perguntas.
+  const { user, profile } = useApp();
+  if (!user) return <Redirect href="/login" />;
+  if (!profile) return <Redirect href="/onboarding" />;
   return (
     <Tabs
       screenOptions={{
