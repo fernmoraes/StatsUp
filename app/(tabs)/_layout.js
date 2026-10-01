@@ -2,6 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { Tabs, Redirect } from 'expo-router';
 import { useApp } from '../../src/state/AppContext';
+import Tutorial from '../../src/components/Tutorial';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts } from '../../src/theme';
@@ -31,10 +32,11 @@ export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const bottom = Math.max(insets.bottom, 8);
   // Sem conta → login; conta sem perfil (ex.: dados apagados na nuvem) → perguntas.
-  const { user, profile } = useApp();
+  const { user, profile, tutorialVisible, closeTutorial } = useApp();
   if (!user) return <Redirect href="/login" />;
   if (!profile) return <Redirect href="/onboarding" />;
   return (
+    <>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -64,5 +66,8 @@ export default function TabsLayout() {
       <Tabs.Screen name="history" options={{ title: 'Histórico', tabBarIcon: icon('time') }} />
       <Tabs.Screen name="profile" options={{ title: 'Perfil', tabBarIcon: icon('person') }} />
     </Tabs>
+    {/* 1ª vez depois das perguntas iniciais (ou "Ver tutorial" no Perfil) */}
+    <Tutorial visible={tutorialVisible} onDone={closeTutorial} />
+    </>
   );
 }

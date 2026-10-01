@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, Alert, StyleSheet, Keyboard, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +10,7 @@ import {
 } from '../../src/components/ui';
 import { colors, spacing, radius, font, fonts, gradients, hexA } from '../../src/theme';
 import { GOALS, getGoal } from '../../src/data/goals';
+import { useDialog } from '../../src/components/dialog';
 import { ageFromBirthDate } from '../../src/data/levels';
 
 function InfoCol({ label, value, unit }) {
@@ -52,7 +53,8 @@ function SyncRow({ state, onRetry }) {
 
 export default function Profile() {
   const router = useRouter();
-  const { user, profile, updateProfile, signOut, syncState, syncNow } = useApp();
+  const { user, profile, updateProfile, signOut, syncState, syncNow, openTutorial } = useApp();
+  const { confirm, toast } = useDialog();
   const [weight, setWeight] = useState(profile ? String(profile.bodyweight_kg) : '');
 
   if (!profile) return null;
@@ -64,7 +66,7 @@ export default function Profile() {
     Keyboard.dismiss();
     if (w > 0) {
       await updateProfile({ bodyweight_kg: w });
-      Alert.alert('Peso atualizado', 'Novos registros usarão este peso. O histórico é preservado.');
+      toast({ title: 'Peso atualizado', message: 'Os próximos registros usam este peso. O histórico continua igual.' });
     }
   };
 
@@ -73,16 +75,16 @@ export default function Profile() {
     await signOut();
     router.replace('/login');
   };
-  const confirmSignOut = () => {
-    const msg = 'Seus treinos continuam salvos. É só entrar de novo com seu e-mail e senha.';
-    if (Platform.OS === 'web') {
-      if (window.confirm(`Sair da conta?\n\n${msg}`)) doSignOut();
-      return;
-    }
-    Alert.alert('Sair da conta?', msg, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: doSignOut },
-    ]);
+  const confirmSignOut = async () => {
+    const ok = await confirm({
+      title: 'Sair da conta?',
+      message: 'Seus treinos continuam salvos na sua conta. É só entrar de novo com seu e-mail e senha.',
+      icon: 'log-out-outline',
+      tone: 'danger',
+      confirmText: 'Sair',
+      confirmIcon: 'log-out-outline',
+    });
+    if (ok) doSignOut();
   };
 
   const displayName = (user && user.name) || profile.name || '';
@@ -178,6 +180,12 @@ export default function Profile() {
       </Card>
 
       <SyncRow state={syncState} onRetry={syncNow} />
+
+      <Card onPress={openTutorial} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing(1.5) }}>
+        <Ionicons name="school-outline" size={20} color={colors.primaryBright} style={{ marginRight: spacing(1.25) }} />
+        <Small style={{ flex: 1, color: colors.text }}>Ver o tutorial de novo</Small>
+        <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+      </Card>
 
       <Button title="Sair da conta" variant="danger" icon={<Ionicons name="log-out-outline" size={18} color={colors.bad} />} onPress={confirmSignOut} style={{ marginTop: spacing(0.5) }} />
 

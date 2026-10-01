@@ -30,6 +30,16 @@ export async function saveLogs(userId, logs) {
   await AsyncStorage.setItem(kLogs(userId), JSON.stringify(logs));
 }
 
+const kTutorial = (userId) => `statsup:${userId}:tutorial:v1`;
+
+export async function isTutorialDone(userId) {
+  return (await AsyncStorage.getItem(kTutorial(userId))) === '1';
+}
+
+export async function setTutorialDone(userId) {
+  await AsyncStorage.setItem(kTutorial(userId), '1');
+}
+
 export async function isDirty(userId) {
   return (await AsyncStorage.getItem(kDirty(userId))) === '1';
 }

@@ -15,6 +15,8 @@ import {
   saveLogs,
   isDirty,
   setDirty,
+  isTutorialDone,
+  setTutorialDone,
 } from '../storage/store';
 import * as auth from '../storage/auth';
 import { pushAll, pullAll } from '../storage/sync';
@@ -90,6 +92,9 @@ export function AppProvider({ children }) {
   // 'idle' | 'syncing' | 'synced' | 'pending' (mudança local ainda não enviada)
   // | 'offline' | 'error'
   const [syncState, setSyncState] = useState('idle');
+  // Tutorial de uso: aparece uma vez por conta (depois das perguntas iniciais)
+  // e pode ser reaberto pelo Perfil.
+  const [tutorialVisible, setTutorialVisible] = useState(false);
 
   const userRef = useRef(null);
   const writeSeq = useRef(0); // muda a cada escrita local
@@ -140,6 +145,7 @@ export function AppProvider({ children }) {
     }
     setProfile(p);
     setLogs(migrated.logs);
+    setTutorialVisible(!(u.tutorial_done || (await isTutorialDone(u.id))));
     setUser(u);
     const sync = runSync(u.id);
     if (!p) await sync;
@@ -172,6 +178,7 @@ export function AppProvider({ children }) {
     await auth.signOut();
     userRef.current = null;
     setSyncState('idle');
+    setTutorialVisible(false);
     setUser(null);
     setProfile(null);
     setLogs([]);
@@ -193,6 +200,14 @@ export function AppProvider({ children }) {
     await setDirty(user.id, true);
     runSync(user.id, { pull: false });
   }, [user, runSync]);
+
+  const openTutorial = useCallback(() => setTutorialVisible(true), []);
+  const closeTutorial = useCallback(async () => {
+    setTutorialVisible(false);
+    if (!user) return;
+    await setTutorialDone(user.id);
+    auth.markTutorialDone();
+  }, [user]);
 
   const syncNow = useCallback(() => (user ? runSync(user.id) : Promise.resolve()), [user, runSync]);
 
@@ -270,6 +285,9 @@ export function AppProvider({ children }) {
     signOut,
     syncState,
     syncNow,
+    tutorialVisible,
+    openTutorial,
+    closeTutorial,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

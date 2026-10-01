@@ -66,7 +66,11 @@ export function DialogShell({ visible, onClose, children, style }) {
 
 /* --------------------------------------------------------------- diálogo */
 function DialogView({ dialog, onAnswer }) {
-  const d = dialog || {};
+  // Mantém o último conteúdo durante a animação de saída (senão o cartão
+  // esvazia antes de sumir).
+  const last = useRef(dialog);
+  if (dialog) last.current = dialog;
+  const d = last.current || {};
   const tone = TONES[d.tone] || TONES.default;
   const close = () => onAnswer(false);
   return (

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, FlatList, SectionList, ScrollView, Modal, Keyboard, useWindowDimensions,
+  View, Text, Pressable, StyleSheet, FlatList, SectionList, ScrollView, Keyboard, useWindowDimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import {
 } from '../../src/components/ui';
 import ExerciseImage from '../../src/components/ExerciseImage';
 import Calendar from '../../src/components/Calendar';
+import { DialogShell } from '../../src/components/dialog';
 import { todayISO, friendlyDate, formatBR } from '../../src/utils/date';
 import { EXERCISES, MUSCLE_GROUPS, GROUP_LABELS_PT, getExercise } from '../../src/data/exercises';
 import { LEVEL_LABELS_PT, LEVELS } from '../../src/data/levels';
@@ -369,22 +370,18 @@ export default function LogScreen() {
         </Body>
       </View>
 
-      <Modal visible={pickerOpen} transparent animationType="fade" onRequestClose={() => setPickerOpen(false)} statusBarTranslucent navigationBarTranslucent>
-        <Pressable style={styles.backdrop} onPress={() => setPickerOpen(false)}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
-            <Label style={{ marginBottom: spacing(1) }}>Quando foi o treino?</Label>
-            <Calendar
-              selected={date}
-              trained={trainedByDay}
-              onSelect={(iso) => { setDate(iso); setPickerOpen(false); }}
-            />
-            <Row style={{ marginTop: spacing(1.5), gap: spacing(1) }}>
-              <Button title="Hoje" variant="ghost" onPress={() => { setDate(todayISO()); setPickerOpen(false); }} style={{ flex: 1 }} />
-              <Button title="Fechar" variant="ghost" onPress={() => setPickerOpen(false)} style={{ flex: 1 }} />
-            </Row>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <DialogShell visible={pickerOpen} onClose={() => setPickerOpen(false)} style={{ padding: spacing(2) }}>
+        <Label style={{ marginBottom: spacing(1) }}>Quando foi o treino?</Label>
+        <Calendar
+          selected={date}
+          trained={trainedByDay}
+          onSelect={(iso) => { setDate(iso); setPickerOpen(false); }}
+        />
+        <Row style={{ marginTop: spacing(1.5), gap: spacing(1) }}>
+          <Button title="Hoje" variant="ghost" onPress={() => { setDate(todayISO()); setPickerOpen(false); }} style={{ flex: 1 }} />
+          <Button title="Fechar" variant="ghost" onPress={() => setPickerOpen(false)} style={{ flex: 1 }} />
+        </Row>
+      </DialogShell>
 
       {chips()}
 
@@ -444,11 +441,6 @@ const styles = StyleSheet.create({
   dateChipPast: { borderColor: colors.primary, backgroundColor: hexA(colors.primary, 0.12) },
   dateChipText: { fontFamily: fonts.extra, fontSize: 16, color: colors.textDim, letterSpacing: 0.6, textTransform: 'uppercase' },
   dateChipHint: { fontFamily: fonts.medium, fontSize: 13, color: colors.textDim },
-  backdrop: { flex: 1, backgroundColor: 'rgba(5,3,3,0.72)', justifyContent: 'center', padding: spacing(2) },
-  sheet: {
-    backgroundColor: colors.bg2, borderRadius: radius.xl, padding: spacing(2),
-    borderWidth: 1, borderColor: colors.glassBorderStrong,
-  },
   checkCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   nav: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.glassBorderStrong, alignItems: 'center', justifyContent: 'center' },
   toggle: { backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.glassBorder, padding: 3 },

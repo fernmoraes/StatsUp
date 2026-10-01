@@ -23,6 +23,7 @@ const publicUser = (u) => ({
   id: u.id,
   email: u.email,
   name: (u.user_metadata && u.user_metadata.name) || '',
+  tutorial_done: !!(u.user_metadata && u.user_metadata.tutorial_done),
   created_at: u.created_at,
 });
 
@@ -137,6 +138,15 @@ export async function restoreSession() {
     return raw ? JSON.parse(raw) : null;
   } catch (e) {
     return null;
+  }
+}
+
+// Tutorial visto: fica na própria conta (metadados), vale em qualquer aparelho.
+export async function markTutorialDone() {
+  try {
+    await supabase.auth.updateUser({ data: { tutorial_done: true } });
+  } catch (e) {
+    // sem rede: o app também guarda no aparelho
   }
 }
 
