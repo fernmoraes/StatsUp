@@ -131,6 +131,13 @@ Níveis ancoram percentis fixos: Iniciante=P5, Novato=P20, Intermediário=P50,
 Avançado=P80, Elite=P95. O **objetivo** do usuário ajusta textos e metas, nunca o
 tamanho do eixo.
 
+## Licença
+
+**Todos os direitos reservados.** O código pode ser visualizado, mas não pode ser
+copiado, modificado ou reutilizado sem autorização dos autores. Componentes de
+terceiros (dependências, fontes, ícones e GIFs dos exercícios) seguem as próprias
+licenças. Veja [`LICENSE`](LICENSE).
+
 ## Notas de modelagem
 
 - Exercícios com tabela completa por peso corporal (supino, terra, agachamento,

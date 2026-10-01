@@ -1,0 +1,45 @@
+StatsUp — Licença de uso
+Copyright (c) 2026 Weslley Cardoso, Fernando Navajas Moraes, Gabriel Terra Lilla
+dos Santos, José Guilherme Sipaúba Costa e Bruna da Costa Candeias.
+
+TODOS OS DIREITOS RESERVADOS.
+
+Este software, incluindo código-fonte, design, textos, documentação, logotipo e
+demais materiais deste repositório (o "Software"), é de propriedade exclusiva dos
+autores acima e protegido pela Lei de Direitos Autorais (Lei nº 9.610/1998) e pela
+Lei de Software (Lei nº 9.609/1998).
+
+1. O que é permitido
+   Visualizar o Software neste repositório e utilizá-lo exclusivamente para fins de
+   avaliação acadêmica pelos professores responsáveis.
+
+2. O que NÃO é permitido sem autorização prévia e por escrito dos autores
+   a) copiar, reproduzir ou redistribuir o Software, no todo ou em parte;
+   b) modificar o Software ou criar trabalhos derivados a partir dele;
+   c) publicar, sublicenciar, vender ou explorar comercialmente o Software;
+   d) apresentar o Software, ou partes dele, como trabalho próprio em qualquer
+      contexto, inclusive acadêmico.
+
+3. Componentes de terceiros
+   Esta licença não se aplica a componentes de terceiros incluídos ou utilizados
+   pelo Software, que continuam sujeitos às licenças dos respectivos titulares,
+   entre eles:
+   - bibliotecas e dependências listadas em package.json (licenças próprias de
+     cada pacote);
+   - fontes Barlow e Barlow Condensed (SIL Open Font License 1.1);
+   - ícones Ionicons (licença MIT);
+   - imagens animadas dos exercícios em assets/exercises/, obtidas da API
+     WorkoutX e sujeitas aos termos de uso da WorkoutX.
+
+4. Plataforma
+   A publicação em repositório público no GitHub implica as permissões previstas
+   nos Termos de Serviço do GitHub (visualizar e criar forks dentro da
+   plataforma). Nenhuma outra permissão é concedida.
+
+5. Garantia
+   O Software é fornecido "no estado em que se encontra", sem garantias de
+   qualquer tipo. Os autores não se responsabilizam por danos decorrentes do seu
+   uso.
+
+Pedidos de autorização: entre em contato com os autores pelo repositório
+https://github.com/fernmoraes/StatsUp
