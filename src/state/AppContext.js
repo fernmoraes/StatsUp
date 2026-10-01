@@ -1,4 +1,4 @@
-// Estado global do app: profile + logs, derivações do radar e ações.
+// Estado global do app: conta logada, profile + logs dela, radar e ações.
 import React, {
   createContext,
   useContext,
@@ -12,8 +12,8 @@ import {
   saveProfile,
   loadLogs,
   saveLogs,
-  clearAll,
 } from '../storage/store';
+import * as auth from '../storage/auth';
 import { getExercise } from '../data/exercises';
 import { computeEntry } from '../engine/calc';
 import { buildRadarState } from '../engine/selectors';
@@ -79,37 +79,67 @@ export function makeEntry(profile, { exercise_id, weight, reps }) {
 }
 
 export function AppProvider({ children }) {
+  const [user, setUser] = useState(null); // conta logada (null = deslogado)
   const [profile, setProfile] = useState(null);
   const [logs, setLogs] = useState([]);
   const [ready, setReady] = useState(false);
 
+  // Carrega perfil + treinos de uma conta.
+  const loadUserData = useCallback(async (u) => {
+    const [p, l] = await Promise.all([loadProfile(u.id), loadLogs(u.id)]);
+    const migrated = migrateLogs(l || []);
+    if (migrated.changed) await saveLogs(u.id, migrated.logs);
+    setProfile(p);
+    setLogs(migrated.logs);
+    setUser(u);
+  }, []);
+
+  // Ao abrir: retoma a conta salva ("Salvar conta"); sem ela, vai pro login.
   useEffect(() => {
     (async () => {
-      const [p, l] = await Promise.all([loadProfile(), loadLogs()]);
-      const migrated = migrateLogs(l || []);
-      if (migrated.changed) await saveLogs(migrated.logs);
-      setProfile(p);
-      setLogs(migrated.logs);
+      const u = await auth.restoreSession();
+      if (u) await loadUserData(u);
       setReady(true);
     })();
+  }, [loadUserData]);
+
+  const signUp = useCallback(async (data) => {
+    const u = await auth.signUp(data);
+    await loadUserData(u);
+    return u;
+  }, [loadUserData]);
+
+  const signIn = useCallback(async (data) => {
+    const u = await auth.signIn(data);
+    await loadUserData(u);
+    return u;
+  }, [loadUserData]);
+
+  // Sai da conta: os dados continuam salvos no aparelho para o próximo login.
+  const signOut = useCallback(async () => {
+    await auth.signOut();
+    setUser(null);
+    setProfile(null);
+    setLogs([]);
   }, []);
 
   const persistProfile = useCallback(async (p) => {
     setProfile(p);
-    await saveProfile(p);
-  }, []);
+    await saveProfile(user.id, p);
+  }, [user]);
 
   const persistLogs = useCallback(async (l) => {
     setLogs(l);
-    await saveLogs(l);
-  }, []);
+    await saveLogs(user.id, l);
+  }, [user]);
 
   // Conclui onboarding: cria profile + as marcas iniciais (baseline). A data só
   // serve para ordenar: um treino registrado depois atualiza o radar.
   const completeOnboarding = useCallback(
     async (profileData, anchorInputs) => {
       const p = {
-        id: 'me',
+        id: user.id,
+        name: user.name,
         age_compare_mode: 'absolute',
         created_at: new Date().toISOString(),
         ...profileData,
@@ -125,7 +155,7 @@ export function AppProvider({ children }) {
       await persistLogs(firstLog);
       return p;
     },
-    [persistProfile, persistLogs]
+    [user, persistProfile, persistLogs]
   );
 
   // Registra um treino. entriesInput: [{exercise_id, weight, reps}].
@@ -152,12 +182,6 @@ export function AppProvider({ children }) {
     [profile, persistProfile]
   );
 
-  const resetAll = useCallback(async () => {
-    await clearAll();
-    setProfile(null);
-    setLogs([]);
-  }, []);
-
   // Só treinos de verdade (sem as marcas do cadastro) e as marcas em separado.
   const workouts = useMemo(() => logs.filter(isWorkout), [logs]);
   const baseline = useMemo(() => logs.find(isBaseline) || null, [logs]);
@@ -169,6 +193,7 @@ export function AppProvider({ children }) {
 
   const value = {
     ready,
+    user,
     profile,
     logs, // tudo (treinos + marcas do cadastro) — use para o radar
     workouts,
@@ -177,7 +202,9 @@ export function AppProvider({ children }) {
     completeOnboarding,
     addWorkout,
     updateProfile,
-    resetAll,
+    signUp,
+    signIn,
+    signOut,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

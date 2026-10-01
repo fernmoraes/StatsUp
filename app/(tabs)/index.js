@@ -37,7 +37,7 @@ function GroupTile({ group, score }) {
 
 export default function Home() {
   const router = useRouter();
-  const { profile, logs, radar } = useApp();
+  const { user, profile, logs, radar } = useApp();
 
   const insights = useMemo(() => (profile && radar ? buildInsights(profile, radar) : []), [profile, radar]);
   const weakGoal = useMemo(() => (profile && radar ? nextGoalForWeakest(profile, radar) : null), [profile, radar]);
@@ -56,7 +56,7 @@ export default function Home() {
         <Row>
           <BrandMark size={22} boxed />
           <View style={{ marginLeft: spacing(1.5) }}>
-            <Label>Bem-vindo de volta</Label>
+            <Label>{user && user.name ? `Bem-vindo, ${user.name.split(' ')[0]}` : 'Bem-vindo de volta'}</Label>
             <H1 style={{ fontSize: 28, lineHeight: 30 }}>Seu radar</H1>
           </View>
         </Row>

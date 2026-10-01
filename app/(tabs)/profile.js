@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, Alert, StyleSheet, Keyboard } from 'react-native';
+import { View, Text, Pressable, Alert, StyleSheet, Keyboard, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -26,7 +26,7 @@ function InfoCol({ label, value, unit }) {
 
 export default function Profile() {
   const router = useRouter();
-  const { profile, updateProfile, resetAll } = useApp();
+  const { user, profile, updateProfile, signOut } = useApp();
   const [weight, setWeight] = useState(profile ? String(profile.bodyweight_kg) : '');
 
   if (!profile) return null;
@@ -42,12 +42,30 @@ export default function Profile() {
     }
   };
 
-  const confirmReset = () => {
-    Alert.alert('Apagar tudo?', 'Isso remove perfil e todos os treinos. Não dá pra desfazer.', [
+  // Sair não apaga nada: perfil e treinos ficam salvos para o próximo login.
+  const doSignOut = async () => {
+    await signOut();
+    router.replace('/login');
+  };
+  const confirmSignOut = () => {
+    const msg = 'Seus treinos continuam salvos. É só entrar de novo com seu e-mail e senha.';
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Sair da conta?\n\n${msg}`)) doSignOut();
+      return;
+    }
+    Alert.alert('Sair da conta?', msg, [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Apagar', style: 'destructive', onPress: async () => { await resetAll(); router.replace('/onboarding'); } },
+      { text: 'Sair', style: 'destructive', onPress: doSignOut },
     ]);
   };
+
+  const displayName = (user && user.name) || profile.name || '';
+  const initials = displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('');
 
   return (
     <Screen>
@@ -57,9 +75,15 @@ export default function Profile() {
       {/* Cartão de identidade */}
       <Card strong style={{ alignItems: 'center', paddingVertical: spacing(2.5) }}>
         <LinearGradient colors={gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatar}>
-          <Ionicons name={profile.sex === 'male' ? 'male' : 'female'} size={28} color="#fff" />
+          {initials ? (
+            <Text style={styles.initials}>{initials}</Text>
+          ) : (
+            <Ionicons name={profile.sex === 'male' ? 'male' : 'female'} size={28} color="#fff" />
+          )}
         </LinearGradient>
-        <Row style={{ marginTop: spacing(1.5) }}>
+        {displayName ? <H3 style={{ marginTop: spacing(1.25), fontSize: 20 }}>{displayName}</H3> : null}
+        {user ? <Small style={{ marginTop: 2 }}>{user.email}</Small> : null}
+        <Row style={{ marginTop: spacing(1.25) }}>
           {goal && <Badge label={`${goal.emoji} ${goal.label}`} color={colors.textDim} />}
         </Row>
         <Divider style={{ alignSelf: 'stretch' }} />
@@ -127,7 +151,7 @@ export default function Profile() {
         <Tiny style={{ marginTop: spacing(1) }}>Aplica-se aos próximos registros.</Tiny>
       </Card>
 
-      <Button title="Apagar dados e recomeçar" variant="danger" icon={<Ionicons name="trash-outline" size={16} color={colors.bad} />} onPress={confirmReset} style={{ marginTop: spacing(0.5) }} />
+      <Button title="Sair da conta" variant="danger" icon={<Ionicons name="log-out-outline" size={18} color={colors.bad} />} onPress={confirmSignOut} style={{ marginTop: spacing(0.5) }} />
 
       <View style={{ alignItems: 'center', marginTop: spacing(3), opacity: 0.55 }}>
         <BrandMark size={26} />
@@ -141,6 +165,7 @@ export default function Profile() {
 
 const styles = StyleSheet.create({
   avatar: { width: 64, height: 64, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
+  initials: { color: '#fff', fontFamily: fonts.heavy, fontSize: 28, letterSpacing: 0.5 },
   chip: {
     paddingVertical: spacing(1), paddingHorizontal: spacing(1.75), borderRadius: radius.sm,
     borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glass,

@@ -382,6 +382,7 @@ O objetivo **não distorce o radar** — ajusta recomendações, metas e copy. O
 
 Lista mínima de telas (o Claude Code define a navegação concreta):
 
+0. **Login / Criar conta** — nome, e-mail e senha no cadastro; e-mail, senha e "Salvar conta" (continuar conectado) no login. O 1º acesso de uma conta vai direto para o onboarding. No Perfil, "Sair da conta" (os dados continuam salvos para o próximo login). Contas são locais por enquanto; o backend (Supabase) substitui o módulo `src/storage/auth.js`.
 1. **Onboarding** (seção 7) — wizard de 3 passos + reveal do radar.
 2. **Home / Radar** — o radar de 6 eixos, score geral, elo fraco, próxima meta em destaque, botão "Treinei hoje".
 3. **Sub-radar** — ao tocar no eixo Perna, abre o detalhamento por subgrupo.
