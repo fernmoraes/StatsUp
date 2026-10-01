@@ -11,6 +11,14 @@ Implementa os documentos de [`docs/conceito_do_app.md`](docs/conceito_do_app.md)
 (produto + motor de cálculo) e [`docs/padroes_de_forca_consolidado.md`](docs/padroes_de_forca_consolidado.md)
 (strength standards).
 
+## Download
+
+**[Baixar StatsUp 1.0.0-beta (APK para Android)](https://github.com/fernmoraes/StatsUp/releases/download/v1.0.0-beta/StatsUp-1.0.0-beta.apk)**
+— ou veja todas as versões em [Releases](https://github.com/fernmoraes/StatsUp/releases).
+
+Abra o link no celular Android e instale. Se o Android pedir, permita a instalação
+de apps desta fonte.
+
 ## Integrantes
 
 | Nome | RM |
