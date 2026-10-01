@@ -8,7 +8,7 @@ import {
   Card, GradientCard, Row, Badge, Button, ProgressBar,
 } from '../../src/components/ui';
 import ExerciseImage from '../../src/components/ExerciseImage';
-import { colors, spacing, groupColor, groupGradient, fonts, hexA } from '../../src/theme';
+import { colors, spacing, groupColor, groupGradient, fonts, hexA, radius } from '../../src/theme';
 import {
   SUBGROUPS_BY_GROUP, SUBGROUP_LABELS_PT, GROUP_LABELS_PT, getExercise,
 } from '../../src/data/exercises';
@@ -46,12 +46,15 @@ export default function SubRadar() {
   return (
     <Screen>
       <Row style={{ marginBottom: spacing(1.5), alignItems: 'center' }}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={styles_back}>
+        <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Voltar" style={({ pressed }) => [styles_back, pressed && { opacity: 0.7 }]}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
         <View style={{ marginLeft: spacing(1.5) }}>
-          <Label color={color}>Detalhe do eixo</Label>
-          <H1 style={{ color }}>{GROUP_LABELS_PT[group]}</H1>
+          <Label>Detalhe do eixo</Label>
+          <Row>
+            <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: color, marginRight: spacing(1) }} />
+            <H1>{GROUP_LABELS_PT[group]}</H1>
+          </Row>
         </View>
       </Row>
 
@@ -62,7 +65,7 @@ export default function SubRadar() {
             <Ionicons name="locate" size={18} color="#fff" />
           </Row>
           <Row style={{ alignItems: 'baseline', marginTop: spacing(0.5) }}>
-            <H1 style={{ color: '#fff' }}>{SUBGROUP_LABELS_PT[weakestSub]}</H1>
+            <Display style={{ color: '#fff', fontSize: 38, textTransform: 'uppercase' }}>{SUBGROUP_LABELS_PT[weakestSub]}</Display>
             <H3 style={{ color: 'rgba(255,255,255,0.85)', marginLeft: spacing(1) }}>P{Math.round(sub[weakestSub].score)}</H3>
           </Row>
           <Body style={{ color: 'rgba(255,255,255,0.92)', marginTop: spacing(0.75) }}>
@@ -79,9 +82,9 @@ export default function SubRadar() {
             <Row style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: sc ? spacing(1) : 0 }}>
               <H3>{SUBGROUP_LABELS_PT[s]}</H3>
               {sc ? (
-                <Display style={{ fontSize: 24, color: colors.text }}>P{Math.round(sc.score)}</Display>
+                <Display style={{ fontSize: 32, lineHeight: 34, color: colors.text }}>P{Math.round(sc.score)}</Display>
               ) : (
-                <Tiny>SEM DADOS</Tiny>
+                <Label style={{ fontSize: 11 }}>Sem dados</Label>
               )}
             </Row>
 
@@ -116,7 +119,7 @@ export default function SubRadar() {
 }
 
 const styles_back = {
-  width: 42, height: 42, borderRadius: 14,
-  backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder,
+  width: 44, height: 44, borderRadius: radius.md,
+  backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.glassBorderStrong,
   alignItems: 'center', justifyContent: 'center',
 };

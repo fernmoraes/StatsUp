@@ -7,7 +7,7 @@ import {
   ageMultiplier,
   levelFromPercentile,
 } from '../data/levels';
-import { getExercise } from '../data/exercises';
+import { getExercise, MUSCLE_GROUPS } from '../data/exercises';
 
 // §5.2 — Estimar 1RM (Epley). reps limitadas a 12 para o cálculo de força.
 export function epley1RM(weight, reps) {
@@ -195,7 +195,7 @@ export function subgroupScore(subGroup, latestByExercise) {
 export function weakestLink(scores) {
   let weakest = null;
   let min = Infinity;
-  for (const g of ['chest', 'back', 'arm', 'leg']) {
+  for (const g of MUSCLE_GROUPS) {
     const s = scores[g];
     if (s && s.score < min) {
       min = s.score;
@@ -207,7 +207,7 @@ export function weakestLink(scores) {
 
 // Score geral: média simples dos eixos com dados (conceito §14, MVP).
 export function overallScore(scores) {
-  const vals = ['chest', 'back', 'arm', 'leg']
+  const vals = MUSCLE_GROUPS
     .map((g) => scores[g] && scores[g].score)
     .filter((v) => v != null);
   if (vals.length === 0) return null;

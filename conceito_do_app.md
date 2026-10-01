@@ -29,7 +29,7 @@
 
 ## 1. Visão geral do produto
 
-**O que é:** um rastreador de academia que transforma a força do usuário em um **radar chart de quatro eixos** (Peito, Costas, Braço, Perna). Cada eixo cresce conforme o usuário fica mais forte **em relação à população** do mesmo sexo e peso corporal. Quanto mais "fora da média" (acima do percentil médio), maior o eixo.
+**O que é:** um rastreador de academia que transforma a força do usuário em um **radar chart de seis eixos** (Peito, Costas, Ombro, Bíceps, Tríceps, Perna). Cada eixo cresce conforme o usuário fica mais forte **em relação à população** do mesmo sexo e peso corporal. Quanto mais "fora da média" (acima do percentil médio), maior o eixo.
 
 **Como funciona, em uma frase:** o usuário informa idade, altura, sexo e peso, responde sobre o objetivo e diz quanto aguenta em alguns exercícios; o app converte cada desempenho em **percentil** (posição na população) usando os strength standards, agrega por grupo muscular e desenha o radar. Todo dia o usuário registra o treino e quanto levantou, e o radar evolui.
 
@@ -68,7 +68,7 @@ Estes princípios guiam toda decisão de implementação. Quando houver dúvida,
 | **Percentil (de força)** | Posição do usuário na população (0–100) para um exercício, derivada por interpolação entre os níveis. **A unidade central do app.** |
 | **1RM** | Carga máxima para uma repetição. Geralmente **estimada** via Epley a partir de peso×reps. |
 | **Exercício-âncora** | O composto principal de cada grupo (supino, remada/barra, agachamento, desenvolvimento). Maior peso no score e usado no onboarding. |
-| **Score de grupo** | Percentil agregado (0–100) de um grupo muscular (Peito/Costas/Braço/Perna). É o valor de um eixo do radar. |
+| **Score de grupo** | Percentil agregado (0–100) de um grupo muscular (Peito/Costas/Ombro/Bíceps/Tríceps/Perna). É o valor de um eixo do radar. |
 | **Score geral** | Média (ou agregação) dos quatro scores de grupo. Um número-resumo da força global. |
 | **Elo fraco** | O grupo (ou subgrupo) com menor score relativo — o que o app sugere priorizar. |
 | **Próxima meta** | A carga/percentil necessária para o usuário subir de nível em um exercício ou eixo. |
@@ -100,7 +100,7 @@ Exercise {
   id                : ID                        // estável; RDL/Shrug/Dips compartilham id entre grupos
   name_pt           : string
   name_en           : string
-  muscle_group      : 'chest'|'back'|'arm'|'leg'      // os 4 eixos do radar
+  muscle_group      : 'chest'|'back'|'shoulder'|'biceps'|'triceps'|'leg'  // os 6 eixos do radar
   sub_group         : 'biceps'|'triceps'|'shoulder'   // só para arm; null nos demais
                       | 'quadriceps'|'hamstrings'|'glutes'|'calves'  // opcional p/ leg
   is_anchor         : boolean                   // composto principal do grupo
@@ -264,7 +264,9 @@ Aplicação: `standard_ajustado = standard × ageMultiplier(idade)`. Como o stan
 ## 6. O Radar Chart
 
 ### 6.1 Estrutura
-- **4 eixos:** Peito, Costas, Braço, Perna. Escala **0–100** (percentil).
+- **6 eixos:** Peito, Costas, Ombro, Bíceps, Tríceps, Perna. Escala **0–100** (percentil).
+- **Disposição:** empurrar à direita (Peito no topo, Ombro, Tríceps), puxar à esquerda (Costas, Bíceps), Perna embaixo.
+- *Histórico:* a versão inicial tinha um eixo único "Braço" com sub-radar de Bíceps/Tríceps/Ombro. Ele foi dividido em três eixos porque um score só escondia desequilíbrios grandes.
 - **Área preenchida** = perfil de força do usuário. Quanto maior a área, mais forte/fora da média globalmente.
 - **Anéis de referência** desenhados nos percentis dos níveis: 5, 20, 50, 80, 95 — rotulados Beginner→Elite. Isso dá leitura instantânea ("meu peito tá no anel Advanced").
 - **Linha da média (P50)** destacada: tudo que ultrapassa o anel 50 está "acima da média".
@@ -272,8 +274,8 @@ Aplicação: `standard_ajustado = standard × ageMultiplier(idade)`. Como o stan
 ### 6.2 Por que percentil e não carga
 Um homem de 100 kg e uma mulher de 55 kg podem ocupar o mesmo ponto se ambos forem P70 — o radar premia **força relativa ao perfil**, não tamanho absoluto. É o que o produto promete ("mais fora da média = maior").
 
-### 6.3 Sub-radar de Braço (o detalhe que chama atenção)
-Ao tocar no eixo **Braço**, abre um sub-radar de 3 pontas: **Bíceps, Tríceps, Ombro**. Calculado igual ao score de grupo, mas filtrando por `sub_group`. Revela desequilíbrios ("seu ombro está em P40 enquanto seu tríceps está em P75"). Opcional fazer o mesmo para **Perna** (Quadríceps/Hamstrings/Glúteos/Panturrilha), já que os dados suportam.
+### 6.3 Sub-radar de Perna (o detalhe que chama atenção)
+Ao tocar no eixo **Perna**, abre o detalhamento por subgrupo: **Quadríceps, Posterior, Glúteos, Panturrilha**. Calculado igual ao score de grupo, mas filtrando por `sub_group`. Revela desequilíbrios ("seu posterior está em P40 enquanto seu quadríceps está em P75").
 
 ### 6.4 Estados visuais
 - **Eixo sem dados:** desenhar no centro (0) com aparência "fantasma" + CTA "registre um exercício de [grupo]".
@@ -291,12 +293,15 @@ No fim do onboarding, animar o radar crescendo do centro até os valores calcula
 
 1. **Dados básicos:** sexo, data de nascimento, altura, peso. (4 campos.)
 2. **Objetivo:** escolha única entre as opções da seção 10.
-3. **Quatro exercícios-âncora — um por grupo:**
+3. **Seis exercícios-âncora — um por eixo:**
    - Peito → **Supino Reto** (barbell bench press)
    - Costas → **Barra Fixa** (pull-up, rep-based) *ou* **Remada Curvada** se preferir carga
    - Perna → **Agachamento Livre** (back squat)
-   - Braço → **Desenvolvimento** (overhead press) — composto que melhor representa o conjunto braço/ombro; alternativamente **Rosca Direta** se o usuário não fizer desenvolvimento
+   - Ombro → **Desenvolvimento** (overhead press)
+   - Bíceps → **Rosca Direta** (barbell curl)
+   - Tríceps → **Supino Fechado** (close-grip bench press)
    Para cada um: "Quanto você levanta?" → peso + reps (ou só reps, na barra fixa). Botão "não faço esse exercício" → pula e o eixo nasce vazio (preenche depois).
+   Essas respostas são **marcas iniciais** (o que a pessoa aguenta), não um treino do dia: alimentam o radar, mas ficam fora do calendário, da sequência e das contagens de treino. Cada treino registrado depois atualiza o exercício correspondente.
 4. **Gerar radar** com animação (6.5) e já mostrar: score geral, elo fraco e a primeira próxima-meta.
 
 > **Regra:** nunca exigir 1RM real. Sempre peso×reps. Se a pessoa não sabe o peso, oferecer estimativa por categoria ("barra vazia / barra + 1 anilha / …") — opcional.
@@ -330,7 +335,7 @@ O que transforma o gráfico bonito em ferramenta viciante.
 weakest_link = grupo com menor score entre os que têm dados
 ```
 - Mostrar com enquadramento positivo: "Seu maior potencial de ganho agora é **Costas** (P38). Foco aqui sobe seu score geral rápido."
-- No nível de subgrupo (braço/perna), apontar o subgrupo mais atrás ("ombro está atrás do resto do braço").
+- Bíceps × Tríceps muito distantes (> 15 pontos): apontar o mais atrás. No nível de subgrupo da perna, apontar o subgrupo mais atrás ("posterior está atrás do resto da perna").
 
 ### 9.2 Próxima meta
 Para qualquer eixo/exercício, calcular a carga que leva ao próximo nível:
@@ -345,7 +350,7 @@ function nextGoal(exercise, sex, bw, current_1rm):
 - No radar, a meta pode aparecer como um ponto-alvo no eixo.
 
 ### 9.3 Insights automáticos (regras simples, expansível)
-- **Desequilíbrio empurrar/puxar:** se `chest_score - back_score > 15`, sugerir volume de costas.
+- **Desequilíbrio empurrar/puxar:** se a média de (Peito, Ombro, Tríceps) passar a de (Costas, Bíceps) por mais de 15 pontos, sugerir volume de costas e bíceps.
 - **Pernas negligenciadas:** se `leg_score` < média dos outros três − 15, alertar (clássico "nunca pula o leg day").
 - **Estagnação:** se o percentil de um âncora não sobe há N semanas, sugerir deload/variação.
 - **Ganho de força relativa por mudança de peso:** se o usuário perdeu peso e manteve carga, parabenizar pelo aumento de força relativa.
@@ -378,10 +383,10 @@ O objetivo **não distorce o radar** — ajusta recomendações, metas e copy. O
 Lista mínima de telas (o Claude Code define a navegação concreta):
 
 1. **Onboarding** (seção 7) — wizard de 3 passos + reveal do radar.
-2. **Home / Radar** — o radar de 4 eixos, score geral, elo fraco, próxima meta em destaque, botão "Treinei hoje".
-3. **Sub-radar** — ao tocar num eixo (braço/perna), abre o detalhamento por subgrupo.
+2. **Home / Radar** — o radar de 6 eixos, score geral, elo fraco, próxima meta em destaque, botão "Treinei hoje".
+3. **Sub-radar** — ao tocar no eixo Perna, abre o detalhamento por subgrupo.
 4. **Registrar treino** — seleção de exercícios + entrada de peso×reps + feedback imediato.
-5. **Histórico** — timeline de treinos + gráficos de evolução (percentil por exercício/grupo, radar de hoje vs. passado).
+5. **Histórico** — calendário mensal (dias treinados marcados; tocar num dia mostra o que foi feito e permite registrar um treino esquecido naquela data), dias desde o último treino de cada grupo, timeline de treinos + radar de hoje vs. passado.
 6. **Detalhe do exercício** — standards do exercício para o perfil do usuário, posição atual, próxima meta, recordes pessoais, dica de execução/EMG.
 7. **Perfil / Ajustes** — editar peso (recalcula), objetivo, toggle de idade, unidades (kg/lb).
 
@@ -427,7 +432,7 @@ Ordem que dá valor rápido e mantém o motor sólido:
 5. Registro de treino, persistência de logs, recálculo incremental, feedback pós-registro.
 
 **Fase 4 — Inteligência**
-6. Elo fraco, próxima meta, insights automáticos, sub-radar de braço/perna.
+6. Elo fraco, próxima meta, insights automáticos, sub-radar de perna.
 
 **Fase 5 — Evolução e retenção**
 7. Histórico, radar hoje-vs-passado, streaks, recordes pessoais.
@@ -442,7 +447,7 @@ Ordem que dá valor rápido e mantém o motor sólido:
 Pontos que valem uma decisão consciente do dev (não bloqueiam o MVP):
 
 - **Saturação acima de Elite:** a fórmula satura P95→P100 com +50% por unidade (5.4). Ajustar a inclinação conforme o quão "raro" você quer que o topo do radar seja.
-- **Agregação do `overall`:** média simples dos 4 eixos vs. média ponderada (ex.: dar mais peso a pernas/costas por serem grupos maiores). MVP: média simples.
+- **Agregação do `overall`:** média simples dos 6 eixos vs. média ponderada (ex.: dar mais peso a pernas/costas por serem grupos maiores). MVP: média simples.
 - **Recência dos percentis:** usar sempre o último registro de cada exercício, ou uma média móvel/melhor-de-N? MVP: último registro (mais simples e responsivo).
 - **Decaimento por inatividade:** o radar deve "encolher" se a pessoa some por meses? Decisão de produto — pode desmotivar. MVP: não decai; mostra "última atualização há X".
 - **Sub-radar de perna:** implementar já ou deixar para depois (os dados suportam ambos).

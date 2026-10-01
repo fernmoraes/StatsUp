@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import {
-  View, Text, TextInput, StyleSheet, Pressable, Animated, Easing, ScrollView,
+  View, Text, StyleSheet, Pressable, Animated, Easing, ScrollView, Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useApp, makeEntry, todayISO } from '../src/state/AppContext';
 import {
   Screen, Display, H1, H2, H3, Body, Small, Tiny, Label,
-  Button, Card, GradientCard, Row, Badge,
+  Button, Card, GradientCard, Row, Badge, BrandLogo, Input,
 } from '../src/components/ui';
 import RadarChart from '../src/components/RadarChart';
 import ProgressRing from '../src/components/ProgressRing';
@@ -17,21 +17,9 @@ import {
   colors, spacing, radius, font, fonts, groupColor, groupGradient, gradients, hexA,
 } from '../src/theme';
 import { GOALS } from '../src/data/goals';
-import { ONBOARDING_ANCHORS, getExercise, GROUP_LABELS_PT, exercisesByGroup } from '../src/data/exercises';
+import { ONBOARDING_ANCHORS, getExercise, GROUP_LABELS_PT, exercisesByGroup, MUSCLE_GROUPS } from '../src/data/exercises';
 import { buildRadarState } from '../src/engine/selectors';
 import { LEVEL_LABELS_PT } from '../src/data/levels';
-
-const inputStyle = {
-  backgroundColor: colors.glass,
-  borderRadius: radius.sm,
-  borderWidth: 1,
-  borderColor: colors.glassBorder,
-  color: colors.text,
-  paddingHorizontal: spacing(1.75),
-  paddingVertical: spacing(1.5),
-  fontSize: font.body,
-  fontFamily: fonts.semibold,
-};
 
 function Field({ label, children }) {
   return (
@@ -55,6 +43,16 @@ export default function Onboarding() {
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [goal, setGoal] = useState('hypertrophy');
+
+  // Cadeia de campos do passo 1: "Próximo" no teclado leva ao campo seguinte e
+  // dia/mês pulam sozinhos quando completos.
+  const monthRef = useRef(null);
+  const yearRef = useRef(null);
+  const heightRef = useRef(null);
+  const weightRef = useRef(null);
+  const repsRef = useRef(null);
+  const digits = (t) => t.replace(/[^0-9]/g, '');
+  const decimal = (t) => t.replace(',', '.').replace(/[^0-9.]/g, '');
 
   const [anchors, setAnchors] = useState(() => {
     const o = {};
@@ -119,12 +117,14 @@ export default function Onboarding() {
       {/* ---------------------------------------------------------- passo 0 */}
       {step === 0 && (
         <View>
-          <LinearGradient colors={gradients.brand} style={styles.logo}>
-            <Ionicons name="stats-chart" size={26} color="#fff" />
+          <LinearGradient colors={gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.logo}>
+            <BrandLogo height={132} />
           </LinearGradient>
-          <Display style={{ marginTop: spacing(2) }}>StatsUp</Display>
-          <Body style={{ color: colors.textDim, marginTop: spacing(1), marginBottom: spacing(2.5) }}>
-            Transforme sua força em um radar de percentil. Comece com seus dados.
+          <Display style={{ marginTop: spacing(2.5), fontSize: 44, lineHeight: 46, textTransform: 'uppercase' }}>
+            Sua força,{'\n'}em percentil
+          </Display>
+          <Body style={{ color: colors.textDim, marginTop: spacing(1), marginBottom: spacing(3) }}>
+            Compare cada levantamento com pessoas do seu sexo, peso e idade. Comece pelos seus dados.
           </Body>
 
           <Field label="Sexo · base de comparação dos padrões">
@@ -143,26 +143,56 @@ export default function Onboarding() {
 
           <Field label="Data de nascimento">
             <Row>
-              <TextInput style={[inputStyle, { flex: 1, marginRight: spacing(1), textAlign: 'center' }]} placeholder="Dia" placeholderTextColor={colors.textFaint} keyboardType="number-pad" value={day} onChangeText={setDay} maxLength={2} />
-              <TextInput style={[inputStyle, { flex: 1, marginRight: spacing(1), textAlign: 'center' }]} placeholder="Mês" placeholderTextColor={colors.textFaint} keyboardType="number-pad" value={month} onChangeText={setMonth} maxLength={2} />
-              <TextInput style={[inputStyle, { flex: 1.4, textAlign: 'center' }]} placeholder="Ano" placeholderTextColor={colors.textFaint} keyboardType="number-pad" value={year} onChangeText={setYear} maxLength={4} />
+              <Input
+                style={{ flex: 1, marginRight: spacing(1), textAlign: 'center' }}
+                placeholder="Dia" keyboardType="number-pad" maxLength={2} returnKeyType="next" submitBehavior="submit"
+                value={day}
+                onChangeText={(t) => { const v = digits(t); setDay(v); if (v.length === 2) monthRef.current?.focus(); }}
+                onSubmitEditing={() => monthRef.current?.focus()}
+              />
+              <Input
+                ref={monthRef}
+                style={{ flex: 1, marginRight: spacing(1), textAlign: 'center' }}
+                placeholder="Mês" keyboardType="number-pad" maxLength={2} returnKeyType="next" submitBehavior="submit"
+                value={month}
+                onChangeText={(t) => { const v = digits(t); setMonth(v); if (v.length === 2) yearRef.current?.focus(); }}
+                onSubmitEditing={() => yearRef.current?.focus()}
+              />
+              <Input
+                ref={yearRef}
+                style={{ flex: 1.4, textAlign: 'center' }}
+                placeholder="Ano" keyboardType="number-pad" maxLength={4} returnKeyType="next" submitBehavior="submit"
+                value={year}
+                onChangeText={(t) => { const v = digits(t); setYear(v); if (v.length === 4) heightRef.current?.focus(); }}
+                onSubmitEditing={() => heightRef.current?.focus()}
+              />
             </Row>
           </Field>
 
           <Row>
             <View style={{ flex: 1, marginRight: spacing(1.5) }}>
               <Field label="Altura (cm)">
-                <TextInput style={inputStyle} placeholder="175" placeholderTextColor={colors.textFaint} keyboardType="number-pad" value={height} onChangeText={setHeight} maxLength={3} />
+                <Input
+                  ref={heightRef}
+                  placeholder="175" keyboardType="number-pad" maxLength={3} returnKeyType="next" submitBehavior="submit"
+                  value={height} onChangeText={(t) => setHeight(digits(t))}
+                  onSubmitEditing={() => weightRef.current?.focus()}
+                />
               </Field>
             </View>
             <View style={{ flex: 1 }}>
               <Field label="Peso (kg)">
-                <TextInput style={inputStyle} placeholder="80" placeholderTextColor={colors.textFaint} keyboardType="numeric" value={weight} onChangeText={setWeight} maxLength={5} />
+                <Input
+                  ref={weightRef}
+                  placeholder="80" keyboardType="decimal-pad" maxLength={5} returnKeyType="done"
+                  value={weight} onChangeText={(t) => setWeight(decimal(t))}
+                  onSubmitEditing={() => { Keyboard.dismiss(); if (basicsValid) setStep(1); }}
+                />
               </Field>
             </View>
           </Row>
 
-          <Button title="Continuar" icon={<Ionicons name="arrow-forward" size={18} color="#fff" />} onPress={() => setStep(1)} disabled={!basicsValid} style={{ marginTop: spacing(1) }} />
+          <Button title="Continuar" icon={<Ionicons name="arrow-forward" size={18} color="#fff" />} onPress={() => { Keyboard.dismiss(); setStep(1); }} disabled={!basicsValid} style={{ marginTop: spacing(1) }} />
         </View>
       )}
 
@@ -179,15 +209,15 @@ export default function Onboarding() {
             const active = goal === g.id;
             return (
               <Pressable key={g.id} onPress={() => setGoal(g.id)}>
-                <Card strong={active} style={active ? { borderColor: colors.primary } : null}>
+                <Card strong={active} style={active ? { borderColor: colors.primary, backgroundColor: hexA(colors.primary, 0.08) } : null}>
                   <Row>
-                    <View style={[styles.goalEmoji, active && { backgroundColor: hexA(colors.primary, 0.18) }]}>
+                    <View style={[styles.goalEmoji, active && { backgroundColor: hexA(colors.primary, 0.2) }]}>
                       <Text style={{ fontSize: 24 }}>{g.emoji}</Text>
                     </View>
                     <View style={{ flex: 1, marginLeft: spacing(1.5) }}>
                       <Row style={{ justifyContent: 'space-between' }}>
                         <H3>{g.label}</H3>
-                        {active && <Ionicons name="checkmark-circle" size={20} color={colors.primary} />}
+                        {active && <Ionicons name="checkmark-circle" size={20} color={colors.primaryBright} />}
                       </Row>
                       <Small style={{ marginTop: 2 }}>{g.blurb}</Small>
                     </View>
@@ -214,23 +244,31 @@ export default function Onboarding() {
         const groupExs = exercisesByGroup(group);
         const isLast = anchorIdx === ONBOARDING_ANCHORS.length - 1;
 
-        const onNext = () => (isLast ? handleGenerate() : setAnchorIdx(anchorIdx + 1));
-        const onBack = () => (anchorIdx === 0 ? setStep(1) : setAnchorIdx(anchorIdx - 1));
+        const onNext = () => { Keyboard.dismiss(); return isLast ? handleGenerate() : setAnchorIdx(anchorIdx + 1); };
+        const onBack = () => { Keyboard.dismiss(); return anchorIdx === 0 ? setStep(1) : setAnchorIdx(anchorIdx - 1); };
 
         return (
           <View>
             <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <Label>Passo 3 · grupo {anchorIdx + 1} de {ONBOARDING_ANCHORS.length}</Label>
+              <Label>Suas marcas · {anchorIdx + 1} de {ONBOARDING_ANCHORS.length}</Label>
               <Pressable onPress={() => setAnchor(group, { skipped: !state.skipped })} hitSlop={8}>
-                <Tiny style={{ color: state.skipped ? colors.warn : colors.textFaint }}>
-                  {state.skipped ? 'PULADO · REATIVAR' : 'NÃO FAÇO ISSO'}
-                </Tiny>
+                <Label color={state.skipped ? colors.primaryBright : colors.textFaint} style={{ fontSize: 11 }}>
+                  {state.skipped ? 'Pulado · reativar' : 'Não faço isso'}
+                </Label>
               </Pressable>
             </Row>
-            <H1 style={{ marginTop: 4, color: groupColor[group] }}>{GROUP_LABELS_PT[group]}</H1>
-            <Body style={{ color: colors.textDim, marginTop: spacing(0.5), marginBottom: spacing(1.5) }}>
-              Escolha um exercício que você faz e diga quanto levanta.
+            <Row style={{ marginTop: 4 }}>
+              <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: groupColor[group], marginRight: spacing(1) }} />
+              <H1>{GROUP_LABELS_PT[group]}</H1>
+            </Row>
+            <Body style={{ color: colors.textDim, marginTop: spacing(0.5), marginBottom: spacing(1) }}>
+              Quanto você aguenta hoje num exercício de {GROUP_LABELS_PT[group].toLowerCase()}? Use sua melhor série recente.
             </Body>
+            {/* Deixa claro que não é o treino do dia (antes virava um treino no calendário). */}
+            <Row style={styles.note}>
+              <Ionicons name="information-circle-outline" size={16} color={colors.textDim} style={{ marginRight: 6 }} />
+              <Small style={{ flex: 1 }}>Não precisa ter treinado hoje: é a sua marca, não um treino. Ela não entra no calendário.</Small>
+            </Row>
 
             <GradientCard gradient={groupGradient[group]} glow={groupColor[group]} style={{ alignItems: 'center', paddingVertical: spacing(2), opacity: state.skipped ? 0.5 : 1 }}>
               <ExerciseImage exerciseId={state.exerciseId} size={176} radius={20} light />
@@ -256,20 +294,29 @@ export default function Onboarding() {
               <Row>
                 {!repsOnly && (
                   <View style={{ flex: 1, marginRight: spacing(1.5) }}>
-                    <Tiny style={{ marginBottom: 5 }}>PESO (KG){ex.per_dumbbell ? ' · HALTER' : ''}</Tiny>
-                    <TextInput style={[inputStyle, { textAlign: 'center', fontSize: 20, fontFamily: fonts.extra }]} placeholder="0" placeholderTextColor={colors.textFaint} keyboardType="numeric" value={state.weight} onChangeText={(t) => setAnchor(group, { weight: t })} />
+                    <Label style={{ marginBottom: 5, fontSize: 11 }}>Carga máx. (kg){ex.per_dumbbell ? ' · halter' : ''}</Label>
+                    <Input
+                      big placeholder="0" keyboardType="decimal-pad" returnKeyType="next" submitBehavior="submit"
+                      value={state.weight} onChangeText={(t) => setAnchor(group, { weight: decimal(t) })}
+                      onSubmitEditing={() => repsRef.current?.focus()}
+                    />
                   </View>
                 )}
                 <View style={{ flex: 1 }}>
-                  <Tiny style={{ marginBottom: 5 }}>{repsOnly ? 'REPETIÇÕES MÁX.' : 'REPS'}</Tiny>
-                  <TextInput style={[inputStyle, { textAlign: 'center', fontSize: 20, fontFamily: fonts.extra }]} placeholder="0" placeholderTextColor={colors.textFaint} keyboardType="number-pad" value={state.reps} onChangeText={(t) => setAnchor(group, { reps: t })} />
+                  <Label style={{ marginBottom: 5, fontSize: 11 }}>{repsOnly ? 'Repetições máx.' : 'Reps com essa carga'}</Label>
+                  <Input
+                    ref={repsRef}
+                    big placeholder="0" keyboardType="number-pad" returnKeyType="done"
+                    value={state.reps} onChangeText={(t) => setAnchor(group, { reps: digits(t) })}
+                    onSubmitEditing={() => Keyboard.dismiss()}
+                  />
                 </View>
               </Row>
             )}
 
             <Row style={{ justifyContent: 'center', marginTop: spacing(2), marginBottom: spacing(1) }}>
               {ONBOARDING_ANCHORS.map((_, i) => (
-                <View key={i} style={{ width: i === anchorIdx ? 22 : 7, height: 7, borderRadius: 4, marginHorizontal: 3, backgroundColor: i === anchorIdx ? groupColor[group] : i < anchorIdx ? colors.primary : colors.glassStrong }} />
+                <View key={i} style={{ width: i === anchorIdx ? 22 : 7, height: 7, borderRadius: 2, marginHorizontal: 3, backgroundColor: i === anchorIdx ? colors.primary : i < anchorIdx ? hexA(colors.primary, 0.5) : colors.surfaceAlt }} />
               ))}
             </Row>
 
@@ -277,7 +324,7 @@ export default function Onboarding() {
               <Button title="Voltar" variant="ghost" onPress={onBack} style={{ flex: 1, marginRight: spacing(1) }} />
               <Button
                 title={isLast ? (anchorInputs.length ? 'Gerar radar' : 'Pular tudo') : 'Próximo'}
-                icon={<Ionicons name={isLast ? 'sparkles' : 'arrow-forward'} size={16} color="#fff" />}
+                icon={<Ionicons name={isLast ? 'pulse' : 'arrow-forward'} size={16} color="#fff" />}
                 onPress={onNext}
                 style={{ flex: 1.5 }}
               />
@@ -303,7 +350,7 @@ function Reveal({ radar, onDone }) {
 
   const scaled = useMemo(() => {
     const out = {};
-    for (const g of ['chest', 'back', 'arm', 'leg']) {
+    for (const g of MUSCLE_GROUPS) {
       const s = radar.scores[g];
       out[g] = s ? { ...s, score: s.score * t } : null;
     }
@@ -315,7 +362,7 @@ function Reveal({ radar, onDone }) {
 
   return (
     <View style={{ alignItems: 'center', paddingTop: spacing(1) }}>
-      <Badge label="✨ SEU RADAR ESTÁ PRONTO" color={colors.primary} />
+      <Badge label="Seu radar está pronto" color={colors.primary} solid style={{ alignSelf: 'center' }} />
       <H1 style={{ marginTop: spacing(1.5), textAlign: 'center' }}>Perfil de força</H1>
 
       <GradientCard gradient={gradients.hero} style={{ alignItems: 'center', marginTop: spacing(2), width: '100%' }}>
@@ -323,39 +370,44 @@ function Reveal({ radar, onDone }) {
       </GradientCard>
 
       <Card strong style={{ width: '100%', alignItems: 'center', paddingVertical: spacing(2.5) }}>
-        <ProgressRing value={(overall || 0) * t} size={140} stroke={13} from={colors.primaryBright} to={colors.violet}>
-          <Display style={{ fontSize: 42 }}>{overall != null ? Math.round(overall * t) : '—'}</Display>
-          <Tiny style={{ color: colors.textDim, marginTop: -4 }}>SCORE GERAL</Tiny>
+        <ProgressRing value={(overall || 0) * t} size={150} stroke={12}>
+          <Display style={{ fontSize: 56, lineHeight: 58 }}>{overall != null ? Math.round(overall * t) : '—'}</Display>
+          <Label color={colors.textDim} style={{ fontSize: 10, marginTop: -4 }}>Score geral</Label>
         </ProgressRing>
         {weakest && (
           <Body style={{ color: colors.textDim, textAlign: 'center', marginTop: spacing(1.5) }}>
             Maior potencial de ganho:{' '}
-            <Body style={{ color: groupColor[weakest], fontFamily: fonts.bold }}>{GROUP_LABELS_PT[weakest]}</Body>
+            <Body style={{ color: colors.text, fontFamily: fonts.bold }}>{GROUP_LABELS_PT[weakest]}</Body>
           </Body>
         )}
       </Card>
 
-      <Button title="Começar a treinar" icon={<Ionicons name="rocket" size={18} color="#fff" />} onPress={onDone} style={{ width: '100%', marginTop: spacing(0.5) }} />
+      <Button title="Começar a treinar" icon={<Ionicons name="arrow-forward" size={18} color="#fff" />} onPress={onDone} style={{ width: '100%', marginTop: spacing(0.5) }} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  progressTrack: { flex: 1, height: 6, borderRadius: 3, marginHorizontal: 3, backgroundColor: colors.glassStrong, overflow: 'hidden' },
-  logo: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  progressTrack: { flex: 1, height: 4, borderRadius: 2, marginHorizontal: 3, backgroundColor: colors.surfaceAlt, overflow: 'hidden' },
+  logo: { width: 132, height: 172, borderRadius: radius.xl, alignItems: 'center', justifyContent: 'center' },
   seg: {
     flex: 1, flexDirection: 'row', paddingVertical: spacing(1.5), borderRadius: radius.sm,
     borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glass,
     alignItems: 'center', justifyContent: 'center', marginRight: spacing(1),
   },
-  segActive: { borderColor: colors.primary, backgroundColor: hexA(colors.primary, 0.16) },
+  segActive: { borderColor: colors.primary, backgroundColor: hexA(colors.primary, 0.18) },
   segText: { color: colors.textDim, fontFamily: fonts.medium, fontSize: font.body },
   goalEmoji: {
-    width: 48, height: 48, borderRadius: 14, backgroundColor: colors.glass,
+    width: 48, height: 48, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
     alignItems: 'center', justifyContent: 'center',
   },
+  note: {
+    alignItems: 'flex-start', padding: spacing(1.25), marginBottom: spacing(1.5),
+    borderRadius: radius.md, backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.glassBorder,
+  },
   altChip: {
-    paddingVertical: spacing(0.85), paddingHorizontal: spacing(1.5), borderRadius: radius.pill,
+    paddingVertical: spacing(0.85), paddingHorizontal: spacing(1.5), borderRadius: radius.sm,
     borderWidth: 1, borderColor: colors.glassBorder, marginRight: spacing(1),
   },
   altChipText: { color: colors.textDim, fontSize: font.small, fontFamily: fonts.medium },

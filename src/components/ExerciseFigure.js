@@ -6,7 +6,7 @@ import Svg, { Line, Circle, Polygon, Rect, G } from 'react-native-svg';
 import { colors, groupColor } from '../theme';
 import { getExercise } from '../data/exercises';
 
-const EQ = '#7C88A8';
+const EQ = '#8A7F7D';
 
 const PATTERN_BY_ID = {
   bench_press: 'press', decline_bench: 'press', dumbbell_bench: 'press',
@@ -34,7 +34,7 @@ const PATTERN_BY_ID = {
 function patternFor(id, ex) {
   if (id && PATTERN_BY_ID[id]) return PATTERN_BY_ID[id];
   if (!ex) return 'press';
-  return { chest: 'press', back: 'row', arm: 'curl', leg: 'squat' }[ex.muscle_group] || 'press';
+  return { chest: 'press', back: 'row', shoulder: 'press', biceps: 'curl', triceps: 'curl', leg: 'squat' }[ex.muscle_group] || 'press';
 }
 
 const seg = (k, x1, y1, x2, y2, c, w = 7) => (

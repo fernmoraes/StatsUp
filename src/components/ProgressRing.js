@@ -1,4 +1,4 @@
-// Anel de progresso circular (estilo Whoop/Oura) com stroke em gradiente.
+// Anel de progresso circular com stroke em gradiente vermelho (cor da marca).
 import React from 'react';
 import { View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop, G } from 'react-native-svg';
@@ -8,9 +8,9 @@ export default function ProgressRing({
   value = 0, // 0..100
   size = 200,
   stroke = 16,
-  from = '#5B8DEF',
-  to = '#9B6CFF',
-  track = 'rgba(255,255,255,0.08)',
+  from = colors.primaryBright,
+  to = colors.primaryDeep,
+  track = colors.surfaceAlt,
   children,
 }) {
   const r = (size - stroke) / 2;

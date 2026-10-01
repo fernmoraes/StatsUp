@@ -44,7 +44,7 @@ export function buildRadarState(profile, logs) {
   const overall = overallScore(scores);
   const weakest = weakestLink(scores);
 
-  // Sub-scores (braço/perna).
+  // Sub-scores (perna).
   const subScores = {};
   for (const [group, subs] of Object.entries(SUBGROUPS_BY_GROUP)) {
     subScores[group] = {};
@@ -77,23 +77,45 @@ export function buildInsights(profile, radarState) {
 
   const chest = s('chest');
   const back = s('back');
-  const arm = s('arm');
+  const shoulder = s('shoulder');
+  const biceps = s('biceps');
+  const triceps = s('triceps');
   const leg = s('leg');
+  const avg = (vals) => {
+    const v = vals.filter((x) => x != null);
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  };
 
-  // Desequilíbrio empurrar/puxar.
-  if (chest != null && back != null && chest - back > 15) {
+  // Desequilíbrio empurrar (peito/ombro/tríceps) × puxar (costas/bíceps).
+  const push = avg([chest, shoulder, triceps]);
+  const pull = avg([back, biceps]);
+  if (push != null && pull != null && push - pull > 15) {
     out.push({
       type: 'imbalance',
       tone: 'warn',
       title: 'Empurrar > Puxar',
-      text: `Seu peito (P${Math.round(chest)}) está bem à frente das costas (P${Math.round(
-        back
-      )}). Adicione volume de costas para equilibrar.`,
+      text: `Seus empurrões (P${Math.round(push)}) estão bem à frente das puxadas (P${Math.round(
+        pull
+      )}). Adicione volume de costas e bíceps para equilibrar.`,
+    });
+  }
+
+  // Bíceps × tríceps muito distantes.
+  if (biceps != null && triceps != null && Math.abs(biceps - triceps) > 15) {
+    const [lowKey, low, high] = biceps < triceps ? ['biceps', biceps, triceps] : ['triceps', triceps, biceps];
+    const other = lowKey === 'biceps' ? 'tríceps' : 'bíceps';
+    out.push({
+      type: 'arm_balance',
+      tone: 'info',
+      title: `${GROUP_LABELS_PT[lowKey]} atrás no braço`,
+      text: `Seu ${GROUP_LABELS_PT[lowKey].toLowerCase()} (P${Math.round(low)}) está atrás do ${other} (P${Math.round(
+        high
+      )}). Foque nele para equilibrar o braço.`,
     });
   }
 
   // Pernas negligenciadas.
-  const upper = [chest, back, arm].filter((v) => v != null);
+  const upper = [chest, back, shoulder, biceps, triceps].filter((v) => v != null);
   if (leg != null && upper.length) {
     const avgUpper = upper.reduce((a, b) => a + b, 0) / upper.length;
     if (leg < avgUpper - 15) {
@@ -108,21 +130,21 @@ export function buildInsights(profile, radarState) {
     }
   }
 
-  // Subgrupo de braço mais atrás.
-  if (subScores.arm) {
-    const armSubs = Object.entries(subScores.arm).filter(([, v]) => v);
-    if (armSubs.length >= 2) {
-      armSubs.sort((a, b) => a[1].score - b[1].score);
-      const [lowKey, lowVal] = armSubs[0];
-      const [, highVal] = armSubs[armSubs.length - 1];
+  // Subgrupo de perna mais atrás.
+  if (subScores.leg) {
+    const legSubs = Object.entries(subScores.leg).filter(([, v]) => v);
+    if (legSubs.length >= 2) {
+      legSubs.sort((a, b) => a[1].score - b[1].score);
+      const [lowKey, lowVal] = legSubs[0];
+      const [, highVal] = legSubs[legSubs.length - 1];
       if (highVal.score - lowVal.score > 15) {
         out.push({
-          type: 'arm_sub',
+          type: 'leg_sub',
           tone: 'info',
-          title: `${SUBGROUP_LABELS_PT[lowKey]} atrás no braço`,
+          title: `${SUBGROUP_LABELS_PT[lowKey]} atrás na perna`,
           text: `Seu ${SUBGROUP_LABELS_PT[lowKey].toLowerCase()} (P${Math.round(
             lowVal.score
-          )}) está atrás do resto do braço. Foque aí para destravar o eixo.`,
+          )}) está atrás do resto da perna. Foque aí para destravar o eixo.`,
         });
       }
     }

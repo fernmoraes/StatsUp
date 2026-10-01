@@ -1,10 +1,11 @@
-// Radar de 4 eixos (conceito §6) — versão premium com gradiente, glow e anéis.
+// Radar de 6 eixos (conceito §6) — área em vermelho da marca, anéis de nível e glow.
 import React from 'react';
 import { View } from 'react-native';
 import Svg, {
   Polygon,
   Line,
   Circle,
+  Rect,
   Text as SvgText,
   G,
   Defs,
@@ -16,15 +17,18 @@ import { colors, groupColor, fonts } from '../theme';
 import { GROUP_LABELS_PT } from '../data/exercises';
 import { LEVEL_PCT } from '../data/levels';
 
-// Pares opostos: empurrar/puxar na vertical, braço/perna na horizontal.
+// Hexágono: empurrar à direita (peito no topo, ombro, tríceps), puxar à
+// esquerda (costas, bíceps) e perna embaixo.
 const AXES = [
   { group: 'chest', angle: 0 },
-  { group: 'arm', angle: 90 },
+  { group: 'shoulder', angle: 60 },
+  { group: 'triceps', angle: 120 },
   { group: 'leg', angle: 180 },
-  { group: 'back', angle: 270 },
+  { group: 'biceps', angle: 240 },
+  { group: 'back', angle: 300 },
 ];
 
-const RING_LABELS = ['Inic', 'Nov', 'Méd', 'Avç', 'Elite'];
+const RING_LABELS = ['INIC', 'NOV', 'MÉD', 'AVÇ', 'ELITE'];
 
 function polar(cx, cy, r, angleDeg) {
   const rad = (angleDeg * Math.PI) / 180;
@@ -61,16 +65,16 @@ export default function RadarChart({ scores, size = 320, past = null, onPressAxi
       <Svg width={size} height={size}>
         <Defs>
           <RadialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
-            <Stop offset="0" stopColor={colors.primary} stopOpacity="0.18" />
+            <Stop offset="0" stopColor={colors.primary} stopOpacity="0.14" />
             <Stop offset="1" stopColor={colors.primary} stopOpacity="0" />
           </RadialGradient>
           <LinearGradient id="fillGrad" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={colors.primaryBright} stopOpacity="0.55" />
-            <Stop offset="1" stopColor={colors.violet} stopOpacity="0.35" />
+            <Stop offset="0" stopColor={colors.primaryBright} stopOpacity="0.50" />
+            <Stop offset="1" stopColor={colors.primaryDeep} stopOpacity="0.30" />
           </LinearGradient>
           <LinearGradient id="strokeGrad" x1="0" y1="0" x2="1" y2="1">
             <Stop offset="0" stopColor={colors.primaryBright} />
-            <Stop offset="1" stopColor={colors.violet} />
+            <Stop offset="1" stopColor={colors.primary} />
           </LinearGradient>
         </Defs>
 
@@ -99,7 +103,7 @@ export default function RadarChart({ scores, size = 320, past = null, onPressAxi
         {rings.map((ring, i) => {
           const p = polar(cx, cy, (ring.pct / 100) * R, 0);
           return (
-            <SvgText key={`rl-${ring.pct}`} x={p.x + 5} y={p.y - 2} fill={colors.ringLabel} fontSize={8} fontFamily={fonts.semibold}>
+            <SvgText key={`rl-${ring.pct}`} x={p.x + 5} y={p.y - 2} fill={colors.ringLabel} fontSize={9} fontFamily={fonts.cond} letterSpacing={0.6}>
               {RING_LABELS[i]}
             </SvgText>
           );
@@ -111,7 +115,7 @@ export default function RadarChart({ scores, size = 320, past = null, onPressAxi
         )}
 
         {/* Glow da área (stroke largo translúcido) */}
-        <Polygon points={toStr(dataPts)} fill="none" stroke={colors.primary} strokeOpacity={0.25} strokeWidth={9} strokeLinejoin="round" />
+        <Polygon points={toStr(dataPts)} fill="none" stroke={colors.primary} strokeOpacity={0.22} strokeWidth={10} strokeLinejoin="round" />
         {/* Área de força */}
         <Polygon points={toStr(dataPts)} fill="url(#fillGrad)" stroke="url(#strokeGrad)" strokeWidth={2.5} strokeLinejoin="round" />
 
@@ -145,10 +149,12 @@ export default function RadarChart({ scores, size = 320, past = null, onPressAxi
           const has = sc && sc.score != null;
           return (
             <G key={`lbl-${a.group}`}>
-              <SvgText x={labelPt.x} y={labelPt.y - 3} fill={groupColor[a.group]} fontSize={13} fontFamily={fonts.bold} textAnchor="middle">
-                {GROUP_LABELS_PT[a.group]}
+              {/* identidade do grupo vai na marca (traço colorido); o texto usa tokens de texto */}
+              <Rect x={labelPt.x - 8} y={labelPt.y - 21} width={16} height={3} rx={1.5} fill={groupColor[a.group]} />
+              <SvgText x={labelPt.x} y={labelPt.y - 3} fill={colors.textDim} fontSize={13} fontFamily={fonts.cond} letterSpacing={0.8} textAnchor="middle">
+                {GROUP_LABELS_PT[a.group].toUpperCase()}
               </SvgText>
-              <SvgText x={labelPt.x} y={labelPt.y + 13} fill={has ? colors.text : colors.textFaint} fontSize={14} fontFamily={fonts.extra} textAnchor="middle">
+              <SvgText x={labelPt.x} y={labelPt.y + 16} fill={has ? colors.text : colors.textFaint} fontSize={19} fontFamily={fonts.black} textAnchor="middle">
                 {has ? `${Math.round(sc.score)}` : '—'}
               </SvgText>
             </G>

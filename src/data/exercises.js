@@ -9,19 +9,20 @@
 // `weight_in_score` segue conceito §5.6 (âncora=3, composto=2, isolador=1).
 // `source`: 'strengthlevel' | 'exrx' | 'modeled' (proporção/curva estimada quando o doc só dá 2 pontos).
 
-export const MUSCLE_GROUPS = ['chest', 'back', 'arm', 'leg'];
+// Eixos do radar. O antigo eixo "Braço" foi dividido em Ombro, Bíceps e
+// Tríceps: um score só para os três escondia desequilíbrios grandes.
+export const MUSCLE_GROUPS = ['chest', 'back', 'shoulder', 'biceps', 'triceps', 'leg'];
 
 export const GROUP_LABELS_PT = {
   chest: 'Peito',
   back: 'Costas',
-  arm: 'Braço',
+  shoulder: 'Ombro',
+  biceps: 'Bíceps',
+  triceps: 'Tríceps',
   leg: 'Perna',
 };
 
 export const SUBGROUP_LABELS_PT = {
-  biceps: 'Bíceps',
-  triceps: 'Tríceps',
-  shoulder: 'Ombro',
   quadriceps: 'Quadríceps',
   hamstrings: 'Posterior',
   glutes: 'Glúteos',
@@ -29,7 +30,6 @@ export const SUBGROUP_LABELS_PT = {
 };
 
 export const SUBGROUPS_BY_GROUP = {
-  arm: ['biceps', 'triceps', 'shoulder'],
   leg: ['quadriceps', 'hamstrings', 'glutes', 'calves'],
 };
 
@@ -389,13 +389,13 @@ export const EXERCISES = [
     },
   },
 
-  // ============================== BRAÇO — BÍCEPS ==============================
+  // ============================== BÍCEPS ==============================
   {
     id: 'barbell_curl',
     name_pt: 'Rosca Direta',
     name_en: 'Barbell Curl',
-    muscle_group: 'arm',
-    sub_group: 'biceps',
+    muscle_group: 'biceps',
+    sub_group: null,
     is_anchor: true,
     equipment: 'barbell',
     per_dumbbell: false,
@@ -433,8 +433,8 @@ export const EXERCISES = [
     id: 'dumbbell_curl',
     name_pt: 'Rosca com Halteres',
     name_en: 'Dumbbell Curl',
-    muscle_group: 'arm',
-    sub_group: 'biceps',
+    muscle_group: 'biceps',
+    sub_group: null,
     equipment: 'dumbbell',
     per_dumbbell: true,
     metric: 'load',
@@ -449,8 +449,8 @@ export const EXERCISES = [
     id: 'hammer_curl',
     name_pt: 'Rosca Martelo',
     name_en: 'Hammer Curl',
-    muscle_group: 'arm',
-    sub_group: 'biceps',
+    muscle_group: 'biceps',
+    sub_group: null,
     equipment: 'dumbbell',
     per_dumbbell: true,
     metric: 'load',
@@ -465,8 +465,8 @@ export const EXERCISES = [
     id: 'preacher_curl',
     name_pt: 'Rosca Scott',
     name_en: 'Preacher Curl',
-    muscle_group: 'arm',
-    sub_group: 'biceps',
+    muscle_group: 'biceps',
+    sub_group: null,
     equipment: 'ezbar',
     per_dumbbell: false,
     metric: 'load',
@@ -481,8 +481,8 @@ export const EXERCISES = [
     id: 'cable_curl',
     name_pt: 'Rosca na Polia',
     name_en: 'Cable Curl',
-    muscle_group: 'arm',
-    sub_group: 'biceps',
+    muscle_group: 'biceps',
+    sub_group: null,
     equipment: 'cable',
     per_dumbbell: false,
     metric: 'load',
@@ -494,13 +494,13 @@ export const EXERCISES = [
     },
   },
 
-  // ============================== BRAÇO — TRÍCEPS ==============================
+  // ============================== TRÍCEPS ==============================
   {
     id: 'close_grip_bench',
     name_pt: 'Supino Pegada Fechada',
     name_en: 'Close-Grip Bench Press',
-    muscle_group: 'arm',
-    sub_group: 'triceps',
+    muscle_group: 'triceps',
+    sub_group: null,
     equipment: 'barbell',
     per_dumbbell: false,
     metric: 'load',
@@ -515,8 +515,8 @@ export const EXERCISES = [
     id: 'triceps_pushdown',
     name_pt: 'Tríceps na Polia',
     name_en: 'Triceps Pushdown',
-    muscle_group: 'arm',
-    sub_group: 'triceps',
+    muscle_group: 'triceps',
+    sub_group: null,
     equipment: 'cable',
     per_dumbbell: false,
     metric: 'load',
@@ -531,8 +531,8 @@ export const EXERCISES = [
     id: 'overhead_triceps_ext',
     name_pt: 'Tríceps Testa / Francês',
     name_en: 'Overhead Triceps Extension',
-    muscle_group: 'arm',
-    sub_group: 'triceps',
+    muscle_group: 'triceps',
+    sub_group: null,
     equipment: 'cable',
     per_dumbbell: false,
     metric: 'load',
@@ -547,8 +547,8 @@ export const EXERCISES = [
     id: 'skullcrusher',
     name_pt: 'Tríceps Francês na Barra',
     name_en: 'Skullcrusher',
-    muscle_group: 'arm',
-    sub_group: 'triceps',
+    muscle_group: 'triceps',
+    sub_group: null,
     equipment: 'ezbar',
     per_dumbbell: false,
     metric: 'load',
@@ -560,13 +560,13 @@ export const EXERCISES = [
     },
   },
 
-  // ============================== BRAÇO — OMBRO ==============================
+  // ============================== OMBRO ==============================
   {
     id: 'overhead_press',
     name_pt: 'Desenvolvimento',
     name_en: 'Overhead Press',
-    muscle_group: 'arm',
-    sub_group: 'shoulder',
+    muscle_group: 'shoulder',
+    sub_group: null,
     is_anchor: true,
     equipment: 'barbell',
     per_dumbbell: false,
@@ -604,8 +604,8 @@ export const EXERCISES = [
     id: 'seated_db_press',
     name_pt: 'Desenvolvimento c/ Halteres',
     name_en: 'Seated DB Shoulder Press',
-    muscle_group: 'arm',
-    sub_group: 'shoulder',
+    muscle_group: 'shoulder',
+    sub_group: null,
     equipment: 'dumbbell',
     per_dumbbell: true,
     metric: 'load',
@@ -620,8 +620,8 @@ export const EXERCISES = [
     id: 'machine_shoulder_press',
     name_pt: 'Desenvolvimento na Máquina',
     name_en: 'Machine Shoulder Press',
-    muscle_group: 'arm',
-    sub_group: 'shoulder',
+    muscle_group: 'shoulder',
+    sub_group: null,
     equipment: 'machine',
     per_dumbbell: false,
     metric: 'load',
@@ -636,8 +636,8 @@ export const EXERCISES = [
     id: 'lateral_raise',
     name_pt: 'Elevação Lateral',
     name_en: 'Dumbbell Lateral Raise',
-    muscle_group: 'arm',
-    sub_group: 'shoulder',
+    muscle_group: 'shoulder',
+    sub_group: null,
     equipment: 'dumbbell',
     per_dumbbell: true,
     metric: 'load',
@@ -652,8 +652,8 @@ export const EXERCISES = [
     id: 'front_raise',
     name_pt: 'Elevação Frontal',
     name_en: 'Dumbbell Front Raise',
-    muscle_group: 'arm',
-    sub_group: 'shoulder',
+    muscle_group: 'shoulder',
+    sub_group: null,
     equipment: 'dumbbell',
     per_dumbbell: true,
     metric: 'load',
@@ -668,8 +668,8 @@ export const EXERCISES = [
     id: 'face_pull',
     name_pt: 'Face Pull',
     name_en: 'Face Pull',
-    muscle_group: 'arm',
-    sub_group: 'shoulder',
+    muscle_group: 'shoulder',
+    sub_group: null,
     equipment: 'cable',
     per_dumbbell: false,
     metric: 'load',
@@ -1018,11 +1018,13 @@ export const getExercise = (id) => EXERCISE_BY_ID[id];
 export const exercisesByGroup = (group) =>
   EXERCISES.filter((e) => e.muscle_group === group);
 
-// Âncoras usadas no onboarding (uma por grupo do radar). Conceito §7.
-// Costas oferece Barra Fixa OU Remada Curvada; Braço usa Desenvolvimento.
+// Âncoras usadas no onboarding (uma por eixo do radar). Conceito §7.
+// Costas oferece Barra Fixa OU Remada Curvada; cada eixo pode ser pulado.
 export const ONBOARDING_ANCHORS = [
   { group: 'chest', exerciseId: 'bench_press' },
   { group: 'back', exerciseId: 'pull_up', altExerciseId: 'barbell_row' },
   { group: 'leg', exerciseId: 'back_squat' },
-  { group: 'arm', exerciseId: 'overhead_press', altExerciseId: 'barbell_curl' },
+  { group: 'shoulder', exerciseId: 'overhead_press' },
+  { group: 'biceps', exerciseId: 'barbell_curl' },
+  { group: 'triceps', exerciseId: 'close_grip_bench' },
 ];

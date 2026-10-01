@@ -1,34 +1,25 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, Alert, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Alert, StyleSheet, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '../../src/state/AppContext';
 import {
   Screen, H1, H3, Body, Small, Tiny, Label,
-  Card, Button, Row, Badge, Divider,
+  Card, Button, Row, Badge, Divider, BrandMark, Input,
 } from '../../src/components/ui';
 import { colors, spacing, radius, font, fonts, gradients, hexA } from '../../src/theme';
 import { GOALS, getGoal } from '../../src/data/goals';
 import { ageFromBirthDate } from '../../src/data/levels';
 
-const input = {
-  backgroundColor: colors.glass,
-  borderRadius: radius.sm,
-  borderWidth: 1,
-  borderColor: colors.glassBorder,
-  color: colors.text,
-  paddingHorizontal: spacing(1.75),
-  paddingVertical: spacing(1.5),
-  fontSize: font.body,
-  fontFamily: fonts.bold,
-};
-
-function InfoCol({ label, value }) {
+function InfoCol({ label, value, unit }) {
   return (
     <View style={{ flex: 1, alignItems: 'center' }}>
-      <Body style={{ fontFamily: fonts.extra, fontSize: 18 }}>{value}</Body>
-      <Tiny style={{ marginTop: 2 }}>{label}</Tiny>
+      <Row style={{ alignItems: 'baseline' }}>
+        <Text style={{ fontFamily: fonts.black, fontSize: 28, color: colors.text, fontVariant: ['tabular-nums'] }}>{value}</Text>
+        {unit ? <Text style={{ fontFamily: fonts.cond, fontSize: 13, color: colors.textFaint, marginLeft: 2 }}>{unit}</Text> : null}
+      </Row>
+      <Label style={{ fontSize: 10, letterSpacing: 1.2 }}>{label}</Label>
     </View>
   );
 }
@@ -44,6 +35,7 @@ export default function Profile() {
 
   const saveWeight = async () => {
     const w = Number(weight);
+    Keyboard.dismiss();
     if (w > 0) {
       await updateProfile({ bodyweight_kg: w });
       Alert.alert('Peso atualizado', 'Novos registros usarão este peso. O histórico é preservado.');
@@ -59,34 +51,40 @@ export default function Profile() {
 
   return (
     <Screen>
-      <H1 style={{ marginBottom: spacing(1.5) }}>Perfil</H1>
+      <Label>Você</Label>
+      <H1 style={{ marginTop: 2, marginBottom: spacing(1.5) }}>Perfil</H1>
 
       {/* Cartão de identidade */}
       <Card strong style={{ alignItems: 'center', paddingVertical: spacing(2.5) }}>
-        <LinearGradient colors={gradients.brand} style={styles.avatar}>
+        <LinearGradient colors={gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatar}>
           <Ionicons name={profile.sex === 'male' ? 'male' : 'female'} size={28} color="#fff" />
         </LinearGradient>
         <Row style={{ marginTop: spacing(1.5) }}>
-          {goal && <Badge label={`${goal.emoji} ${goal.label}`} color={colors.primary} />}
+          {goal && <Badge label={`${goal.emoji} ${goal.label}`} color={colors.textDim} />}
         </Row>
         <Divider style={{ alignSelf: 'stretch' }} />
         <Row style={{ alignSelf: 'stretch' }}>
-          <InfoCol label="SEXO" value={profile.sex === 'male' ? 'M' : 'F'} />
-          <InfoCol label="IDADE" value={age != null ? age : '—'} />
-          <InfoCol label="ALTURA" value={`${profile.height_cm}`} />
-          <InfoCol label="PESO" value={`${profile.bodyweight_kg}`} />
+          <InfoCol label="Sexo" value={profile.sex === 'male' ? 'M' : 'F'} />
+          <InfoCol label="Idade" value={age != null ? age : '—'} />
+          <InfoCol label="Altura" value={`${profile.height_cm}`} unit="cm" />
+          <InfoCol label="Peso" value={`${profile.bodyweight_kg}`} unit="kg" />
         </Row>
       </Card>
 
       {/* Peso */}
       <Card>
         <Row style={{ alignItems: 'center', marginBottom: spacing(1) }}>
-          <Ionicons name="scale-outline" size={18} color={colors.primary} style={{ marginRight: 8 }} />
+          <Ionicons name="scale-outline" size={18} color={colors.primaryBright} style={{ marginRight: 8 }} />
           <H3>Peso corporal</H3>
         </Row>
         <Small style={{ marginBottom: spacing(1.25) }}>Recalcula os percentis dos próximos registros.</Small>
         <Row>
-          <TextInput style={[input, { flex: 1, marginRight: spacing(1), textAlign: 'center' }]} keyboardType="numeric" value={weight} onChangeText={setWeight} placeholder="kg" placeholderTextColor={colors.textFaint} />
+          <Input
+            style={{ flex: 1, marginRight: spacing(1), textAlign: 'center', fontFamily: fonts.bold }}
+            keyboardType="decimal-pad" returnKeyType="done" placeholder="kg"
+            value={weight} onChangeText={(t) => setWeight(t.replace(',', '.').replace(/[^0-9.]/g, ''))}
+            onSubmitEditing={saveWeight}
+          />
           <Button title="Salvar" onPress={saveWeight} style={{ paddingHorizontal: spacing(3) }} />
         </Row>
       </Card>
@@ -94,7 +92,7 @@ export default function Profile() {
       {/* Objetivo */}
       <Card>
         <Row style={{ alignItems: 'center', marginBottom: spacing(1.25) }}>
-          <Ionicons name="flag-outline" size={18} color={colors.primary} style={{ marginRight: 8 }} />
+          <Ionicons name="flag-outline" size={18} color={colors.primaryBright} style={{ marginRight: 8 }} />
           <H3>Objetivo</H3>
         </Row>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
@@ -112,7 +110,7 @@ export default function Profile() {
       {/* Idade */}
       <Card>
         <Row style={{ alignItems: 'center', marginBottom: spacing(1) }}>
-          <Ionicons name="hourglass-outline" size={18} color={colors.primary} style={{ marginRight: 8 }} />
+          <Ionicons name="hourglass-outline" size={18} color={colors.primaryBright} style={{ marginRight: 8 }} />
           <H3>Comparação por idade</H3>
         </Row>
         <Small style={{ marginBottom: spacing(1.25) }}>"Gentil" compara você com a sua faixa etária em vez de todos os adultos.</Small>
@@ -131,27 +129,30 @@ export default function Profile() {
 
       <Button title="Apagar dados e recomeçar" variant="danger" icon={<Ionicons name="trash-outline" size={16} color={colors.bad} />} onPress={confirmReset} style={{ marginTop: spacing(0.5) }} />
 
-      <Small style={{ textAlign: 'center', marginTop: spacing(2.5), color: colors.textFaint }}>
-        StatsUp · força em percentil · 100% offline
-      </Small>
+      <View style={{ alignItems: 'center', marginTop: spacing(3), opacity: 0.55 }}>
+        <BrandMark size={26} />
+        <Small style={{ textAlign: 'center', marginTop: spacing(1), color: colors.textFaint }}>
+          StatsUp · força em percentil · 100% offline
+        </Small>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  avatar: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 64, height: 64, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
   chip: {
-    paddingVertical: spacing(1), paddingHorizontal: spacing(1.75), borderRadius: radius.pill,
+    paddingVertical: spacing(1), paddingHorizontal: spacing(1.75), borderRadius: radius.sm,
     borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glass,
     marginRight: spacing(1), marginBottom: spacing(1),
   },
-  chipActive: { borderColor: colors.primary, backgroundColor: hexA(colors.primary, 0.16) },
+  chipActive: { borderColor: colors.primary, backgroundColor: hexA(colors.primary, 0.18) },
   chipText: { color: colors.textDim, fontSize: font.small, fontFamily: fonts.medium },
   seg: {
     flex: 1, paddingVertical: spacing(1.5), borderRadius: radius.sm,
     borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glass,
     alignItems: 'center', justifyContent: 'center', marginRight: spacing(1),
   },
-  segActive: { borderColor: colors.primary, backgroundColor: hexA(colors.primary, 0.16) },
+  segActive: { borderColor: colors.primary, backgroundColor: hexA(colors.primary, 0.18) },
   segText: { color: colors.textDim, fontFamily: fonts.medium, fontSize: font.small },
 });

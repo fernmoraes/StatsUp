@@ -52,7 +52,7 @@ export default function ExerciseDetail() {
   return (
     <Screen>
       <Row style={{ marginBottom: spacing(1.5) }}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={styles_back}>
+        <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Voltar" style={({ pressed }) => [styles_back, pressed && { opacity: 0.7 }]}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
       </Row>
@@ -83,12 +83,12 @@ export default function ExerciseDetail() {
             <View>
               <Label>Sua posição</Label>
               <Row style={{ alignItems: 'baseline', marginTop: 2 }}>
-                <Display style={{ fontSize: 36, color: colors.primaryBright }}>P{Math.round(latest.percentile)}</Display>
+                <Display style={{ fontSize: 48, lineHeight: 50, color: colors.primaryBright }}>P{Math.round(latest.percentile)}</Display>
                 <Badge label={LEVEL_LABELS_PT[latest.level]} color={color} style={{ marginLeft: spacing(1) }} />
               </Row>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
-              <Tiny>{ex.metric === 'reps' ? 'MELHOR' : '1RM EST.'}</Tiny>
+              <Label style={{ fontSize: 11 }}>{ex.metric === 'reps' ? 'Melhor' : '1RM est.'}</Label>
               <H2>{latest.est_1rm} {unit}</H2>
             </View>
           </Row>
@@ -97,10 +97,10 @@ export default function ExerciseDetail() {
           </View>
           {goal && (
             <Row style={{ marginTop: spacing(1.25), alignItems: 'center' }}>
-              <Ionicons name="flag" size={15} color={color} style={{ marginRight: 8 }} />
+              <Ionicons name="flag" size={15} color={colors.primaryBright} style={{ marginRight: 8 }} />
               <Body style={{ flex: 1, fontSize: 14 }}>
                 Faltam{' '}
-                <Body style={{ fontFamily: fonts.extra, fontSize: 14 }}>{fmt(goal.delta)} {unit}</Body>{' '}
+                <Body style={{ fontFamily: fonts.bold, fontSize: 14 }}>{fmt(goal.delta)} {unit}</Body>{' '}
                 para {LEVEL_LABELS_PT[goal.next_level]}.
               </Body>
             </Row>
@@ -116,7 +116,7 @@ export default function ExerciseDetail() {
       )}
 
       {/* Tabela de padrões */}
-      <SectionHeader title="Padrões para o seu perfil" accent={color} />
+      <SectionHeader title="Padrões para o seu perfil" />
       <Card>
         <Small style={{ marginBottom: spacing(1) }}>
           {profile.sex === 'male' ? 'Masculino' : 'Feminino'} · {profile.bodyweight_kg} kg
@@ -132,16 +132,16 @@ export default function ExerciseDetail() {
                   justifyContent: 'space-between', alignItems: 'center',
                   paddingVertical: spacing(1), paddingHorizontal: spacing(1.25),
                   borderRadius: radius.sm, marginBottom: 4,
-                  backgroundColor: isCurrent ? hexA(color, 0.16) : 'transparent',
-                  borderWidth: isCurrent ? 1 : 0, borderColor: hexA(color, 0.5),
+                  backgroundColor: isCurrent ? hexA(colors.primary, 0.14) : 'transparent',
+                  borderWidth: isCurrent ? 1 : 0, borderColor: hexA(colors.primary, 0.55),
                 }}
               >
                 <Row>
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: isCurrent ? color : colors.textFaint, marginRight: spacing(1.25) }} />
+                  <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: isCurrent ? colors.primary : colors.textFaint, marginRight: spacing(1.25) }} />
                   <Body style={{ fontFamily: isCurrent ? fonts.bold : fonts.medium }}>{LEVEL_LABELS_PT[lvlKey]}</Body>
                   <Tiny style={{ marginLeft: 6 }}>P{LEVEL_PCT[i]}</Tiny>
                 </Row>
-                <Body style={{ fontFamily: fonts.extra, color: isCurrent ? color : colors.text }}>
+                <Body style={{ fontFamily: fonts.black, fontSize: 18, color: isCurrent ? colors.primaryBright : colors.text, fontVariant: ['tabular-nums'] }}>
                   {fmt(lv.vals[i])} {unit}
                 </Body>
               </Row>
@@ -162,8 +162,8 @@ export default function ExerciseDetail() {
 function InfoChip({ icon, label }) {
   return (
     <Row style={{
-      backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder,
-      borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12,
+      backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.glassBorder,
+      borderRadius: radius.sm, paddingVertical: 6, paddingHorizontal: 10,
       marginRight: spacing(1), marginBottom: spacing(1),
     }}>
       <Ionicons name={icon} size={13} color={colors.textDim} style={{ marginRight: 5 }} />
@@ -173,7 +173,7 @@ function InfoChip({ icon, label }) {
 }
 
 const styles_back = {
-  width: 42, height: 42, borderRadius: 14,
-  backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder,
+  width: 44, height: 44, borderRadius: radius.md,
+  backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.glassBorderStrong,
   alignItems: 'center', justifyContent: 'center',
 };

@@ -18,10 +18,38 @@ import { getExercise } from '../data/exercises';
 import { computeEntry } from '../engine/calc';
 import { buildRadarState } from '../engine/selectors';
 import { ageFromBirthDate } from '../data/levels';
+import { todayISO } from '../utils/date';
 
 const AppContext = createContext(null);
 
-export const todayISO = () => new Date().toISOString().slice(0, 10);
+export { todayISO };
+
+// Logs sempre do mais recente para o mais antigo. sort() é estável, então
+// dois treinos no mesmo dia mantêm a ordem de criação (o novo primeiro).
+const byDateDesc = (a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
+
+// Dois tipos de registro em `logs`:
+//   - treino (padrão): o que a pessoa fez num dia. Entra no calendário,
+//     sequência, contagem de treinos e "desde o último treino".
+//   - baseline (kind: 'baseline'): as marcas do cadastro — o máximo que a pessoa
+//     aguenta em cada exercício. NÃO é um treino daquele dia; só alimenta o radar.
+export const isBaseline = (log) => log.kind === 'baseline';
+export const isWorkout = (log) => !isBaseline(log);
+
+// Versões antigas salvavam as marcas do cadastro como um treino comum com a
+// nota 'Onboarding'. Converte para baseline (sem perder nenhum dado).
+function migrateLogs(logs) {
+  let changed = false;
+  const out = logs.map((l) => {
+    if (!l.kind && l.note === 'Onboarding') {
+      changed = true;
+      const { note, ...rest } = l;
+      return { ...rest, kind: 'baseline' };
+    }
+    return l;
+  });
+  return { logs: out, changed };
+}
 
 // Constrói uma SetEntry persistível a partir do input do usuário.
 export function makeEntry(profile, { exercise_id, weight, reps }) {
@@ -58,8 +86,10 @@ export function AppProvider({ children }) {
   useEffect(() => {
     (async () => {
       const [p, l] = await Promise.all([loadProfile(), loadLogs()]);
+      const migrated = migrateLogs(l || []);
+      if (migrated.changed) await saveLogs(migrated.logs);
       setProfile(p);
-      setLogs(l || []);
+      setLogs(migrated.logs);
       setReady(true);
     })();
   }, []);
@@ -74,7 +104,8 @@ export function AppProvider({ children }) {
     await saveLogs(l);
   }, []);
 
-  // Conclui onboarding: cria profile + primeiro log com as âncoras informadas.
+  // Conclui onboarding: cria profile + as marcas iniciais (baseline). A data só
+  // serve para ordenar: um treino registrado depois atualiza o radar.
   const completeOnboarding = useCallback(
     async (profileData, anchorInputs) => {
       const p = {
@@ -88,7 +119,7 @@ export function AppProvider({ children }) {
         .filter(Boolean);
       const firstLog =
         entries.length > 0
-          ? [{ id: `log_${Date.now()}`, date: todayISO(), entries, note: 'Onboarding' }]
+          ? [{ id: `baseline_${Date.now()}`, kind: 'baseline', date: todayISO(), entries }]
           : [];
       await persistProfile(p);
       await persistLogs(firstLog);
@@ -97,14 +128,15 @@ export function AppProvider({ children }) {
     [persistProfile, persistLogs]
   );
 
-  // Registra um treino (loop diário). entriesInput: [{exercise_id, weight, reps}].
+  // Registra um treino. entriesInput: [{exercise_id, weight, reps}].
+  // `date` pode ser um dia passado (treino esquecido, marcado pelo calendário).
   const addWorkout = useCallback(
     async (entriesInput, { date = todayISO(), note = '' } = {}) => {
       if (!profile) return null;
       const entries = entriesInput.map((inp) => makeEntry(profile, inp)).filter(Boolean);
       if (entries.length === 0) return null;
       const log = { id: `log_${Date.now()}`, date, entries, note };
-      const next = [log, ...logs];
+      const next = [log, ...logs].sort(byDateDesc);
       await persistLogs(next);
       return log;
     },
@@ -126,6 +158,10 @@ export function AppProvider({ children }) {
     setLogs([]);
   }, []);
 
+  // Só treinos de verdade (sem as marcas do cadastro) e as marcas em separado.
+  const workouts = useMemo(() => logs.filter(isWorkout), [logs]);
+  const baseline = useMemo(() => logs.find(isBaseline) || null, [logs]);
+
   const radar = useMemo(() => {
     if (!profile) return null;
     return buildRadarState(profile, logs);
@@ -134,7 +170,9 @@ export function AppProvider({ children }) {
   const value = {
     ready,
     profile,
-    logs,
+    logs, // tudo (treinos + marcas do cadastro) — use para o radar
+    workouts,
+    baseline,
     radar,
     completeOnboarding,
     addWorkout,

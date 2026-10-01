@@ -1,42 +1,45 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, TextInput, Pressable, StyleSheet, FlatList, SectionList, ScrollView, useWindowDimensions,
+  View, Text, Pressable, StyleSheet, FlatList, SectionList, ScrollView, Modal, Keyboard, useWindowDimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp, makeEntry } from '../../src/state/AppContext';
 import {
   Screen, Display, H1, H2, H3, Body, Small, Tiny, Label,
-  Card, GradientCard, Button, Row, Badge, ProgressBar, SectionHeader, Chip,
+  Card, GradientCard, Button, Row, Badge, ProgressBar, SectionHeader, Chip, Input, useScreenKeyboard,
 } from '../../src/components/ui';
 import ExerciseImage from '../../src/components/ExerciseImage';
+import Calendar from '../../src/components/Calendar';
+import { todayISO, friendlyDate, formatBR } from '../../src/utils/date';
 import { EXERCISES, MUSCLE_GROUPS, GROUP_LABELS_PT, getExercise } from '../../src/data/exercises';
 import { LEVEL_LABELS_PT, LEVELS } from '../../src/data/levels';
 import {
   colors, spacing, radius, font, fonts, groupColor, groupGradient, gradients, hexA,
 } from '../../src/theme';
 
-const numInput = {
-  backgroundColor: colors.glass,
-  borderRadius: radius.md,
-  borderWidth: 1,
-  borderColor: colors.glassBorder,
-  color: colors.text,
-  paddingVertical: spacing(1.25),
-  fontSize: 19,
-  fontFamily: fonts.extra,
-  textAlign: 'center',
-};
-
 const confLabel = { high: 'ALTA', medium: 'MÉDIA', low: 'BAIXA' };
 const confColor = { high: colors.good, medium: colors.warn, low: colors.bad };
 
 const FILTERS = [{ key: 'all', label: 'Todos' }, ...MUSCLE_GROUPS.map((g) => ({ key: g, label: GROUP_LABELS_PT[g] }))];
 
+// Altura aproximada da barra "Salvar treino" (fica acima do teclado).
+const SAVE_BAR_H = 76;
+
+// SectionList ligada ao controle de teclado da <Screen> (rola o campo focado).
+const KeyboardAwareSectionList = React.forwardRef(function KeyboardAwareSectionList(props, ref) {
+  const { onScroll } = useScreenKeyboard();
+  return <SectionList ref={ref} onScroll={onScroll} scrollEventThrottle={16} {...props} />;
+});
+
+const digits = (t) => t.replace(/[^0-9]/g, '');
+const decimal = (t) => t.replace(',', '.').replace(/[^0-9.]/g, '');
+
 export default function LogScreen() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
-  const { profile, radar, addWorkout } = useApp();
+  const { profile, workouts, radar, addWorkout } = useApp();
+  const params = useLocalSearchParams();
 
   const [mode, setMode] = useState('list'); // 'list' | 'carousel'
   const [filter, setFilter] = useState('all');
@@ -45,6 +48,34 @@ export default function LogScreen() {
   const [index, setIndex] = useState(0);
   const [carouselH, setCarouselH] = useState(0);
   const listRef = useRef(null);
+  const sectionRef = useRef(null);
+  const repsRefs = useRef({});
+
+  // Data do treino: hoje por padrão; um dia passado vindo do calendário do
+  // Histórico (?date=) ou escolhido aqui. Volta para hoje ao sair da aba.
+  const [date, setDate] = useState(todayISO());
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const isToday = date === todayISO();
+  useEffect(() => {
+    if (!params.date) return;
+    setDate(String(params.date));
+    setFeedback(null);
+    router.setParams({ date: undefined }); // consome o parâmetro
+  }, [params.date, router]);
+  useFocusEffect(useCallback(() => () => setDate(todayISO()), []));
+
+  const trainedByDay = useMemo(() => {
+    const out = {};
+    for (const log of workouts) {
+      const set = new Set(out[log.date] || []);
+      for (const e of log.entries) {
+        const ex = getExercise(e.exercise_id);
+        if (ex) set.add(ex.muscle_group);
+      }
+      out[log.date] = MUSCLE_GROUPS.filter((g) => set.has(g));
+    }
+    return out;
+  }, [workouts]);
 
   const list = useMemo(
     () => EXERCISES.filter((e) => filter === 'all' || e.muscle_group === filter),
@@ -97,6 +128,7 @@ export default function LogScreen() {
 
   const handleSave = async () => {
     if (!profile || validInputs.length === 0) return;
+    Keyboard.dismiss();
     const prevLatest = radar ? radar.latest : {};
     const fb = validInputs.map((inp) => {
       const entry = makeEntry(profile, inp);
@@ -105,10 +137,16 @@ export default function LogScreen() {
       const prevPct = prev ? prev.percentile : null;
       const prevLevelIdx = prev ? LEVELS.indexOf(prev.level) : -1;
       const newLevelIdx = LEVELS.indexOf(entry.level);
-      return { ex, entry, prevPct, isPR: prevPct == null || entry.percentile > prevPct, leveledUp: newLevelIdx > prevLevelIdx && prevLevelIdx >= 0 };
+      // Recorde/subida de nível só fazem sentido para o treino de hoje: um
+      // registro retroativo não substitui marcas mais recentes.
+      return {
+        ex, entry, prevPct,
+        isPR: isToday && (prevPct == null || entry.percentile > prevPct),
+        leveledUp: isToday && newLevelIdx > prevLevelIdx && prevLevelIdx >= 0,
+      };
     });
-    await addWorkout(validInputs);
-    setFeedback(fb);
+    await addWorkout(validInputs, { date });
+    setFeedback({ items: fb, date });
     setDraft({});
     setFilter('all');
     setIndex(0);
@@ -116,19 +154,24 @@ export default function LogScreen() {
 
   /* ----------------------------------------------------------- feedback */
   if (feedback) {
-    const prs = feedback.filter((f) => f.isPR).length;
+    const items = feedback.items;
+    const prs = items.filter((f) => f.isPR).length;
+    const past = feedback.date !== todayISO();
     return (
       <Screen>
-        <GradientCard gradient={gradients.good} glow={colors.good} style={{ alignItems: 'center', paddingVertical: spacing(3) }}>
-          <View style={styles.checkCircle}><Ionicons name="checkmark" size={34} color={colors.good} /></View>
-          <H1 style={{ color: '#04241A', marginTop: spacing(1.5) }}>Treino salvo!</H1>
-          <Body style={{ color: '#04241A', opacity: 0.85, marginTop: 4 }}>
-            {feedback.length} exercício{feedback.length > 1 ? 's' : ''}{prs > 0 ? ` · ${prs} recorde${prs > 1 ? 's' : ''} 🔥` : ''}
+        <GradientCard gradient={gradients.brand} glow={colors.primary} style={{ alignItems: 'center', paddingVertical: spacing(3) }}>
+          <View style={styles.checkCircle}><Ionicons name="checkmark" size={34} color={colors.primary} /></View>
+          <Display style={{ color: '#fff', marginTop: spacing(1.5), fontSize: 40, textTransform: 'uppercase' }}>Treino salvo</Display>
+          <Body style={{ color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>
+            {items.length} exercício{items.length > 1 ? 's' : ''}{prs > 0 ? ` · ${prs} recorde${prs > 1 ? 's' : ''} 🔥` : ''}
           </Body>
+          {past && (
+            <Badge label={`Registrado em ${formatBR(feedback.date)}`} color="#fff" style={{ alignSelf: 'center', marginTop: spacing(1.25) }} />
+          )}
         </GradientCard>
 
         <SectionHeader title="Resultados" />
-        {feedback.map((f, i) => (
+        {items.map((f, i) => (
           <Card key={i} accent={groupColor[f.ex.muscle_group]}>
             <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <ExerciseImage exerciseId={f.ex.id} size={52} radius={13} style={{ marginRight: spacing(1.25) }} />
@@ -136,24 +179,24 @@ export default function LogScreen() {
                 <H3 numberOfLines={1}>{f.ex.name_pt}</H3>
                 <Small style={{ marginTop: 2 }}>{f.ex.metric === 'reps' ? `${f.entry.est_1rm} reps` : `1RM est. ${f.entry.est_1rm} kg`}</Small>
               </View>
-              <Display style={{ fontSize: 30, color: colors.primaryBright }}>P{Math.round(f.entry.percentile)}</Display>
+              <Display style={{ fontSize: 38, lineHeight: 40, color: colors.primaryBright }}>P{Math.round(f.entry.percentile)}</Display>
             </Row>
             <View style={{ marginTop: spacing(1.25) }}>
               <ProgressBar value={f.entry.percentile} gradient={groupGradient[f.ex.muscle_group]} height={8} />
             </View>
             <Row style={{ justifyContent: 'space-between', marginTop: spacing(1.25) }}>
               <Badge label={LEVEL_LABELS_PT[f.entry.level]} color={groupColor[f.ex.muscle_group]} />
-              <Row><Tiny>CONFIANÇA </Tiny><Tiny style={{ color: confColor[f.entry.confidence] }}>{confLabel[f.entry.confidence]}</Tiny></Row>
+              <Row><Label style={{ fontSize: 11 }}>Confiança </Label><Label color={confColor[f.entry.confidence]} style={{ fontSize: 11 }}>{confLabel[f.entry.confidence]}</Label></Row>
             </Row>
             {f.leveledUp && (
               <Row style={{ marginTop: spacing(1.25), backgroundColor: hexA(colors.good, 0.12), padding: spacing(1), borderRadius: radius.sm }}>
                 <Ionicons name="trophy" size={16} color={colors.good} />
-                <Body style={{ color: colors.good, marginLeft: 8, fontFamily: fonts.semibold }}>Subiu para {LEVEL_LABELS_PT[f.entry.level]}!</Body>
+                <Body style={{ color: colors.good, marginLeft: 8, fontFamily: fonts.semibold }}>Subiu para {LEVEL_LABELS_PT[f.entry.level]}</Body>
               </Row>
             )}
             {!f.leveledUp && f.isPR && f.prevPct != null && (
               <Row style={{ marginTop: spacing(1.25), backgroundColor: hexA(colors.primary, 0.12), padding: spacing(1), borderRadius: radius.sm }}>
-                <Ionicons name="flame" size={16} color={colors.warn} />
+                <Ionicons name="flame" size={16} color={colors.primaryBright} />
                 <Body style={{ color: colors.text, marginLeft: 8, fontFamily: fonts.semibold }}>Novo recorde: P{Math.round(f.prevPct)} → P{Math.round(f.entry.percentile)}</Body>
               </Row>
             )}
@@ -179,13 +222,22 @@ export default function LogScreen() {
       <Row>
         {!repsOnly && (
           <View style={{ flex: 1, marginRight: spacing(1.5) }}>
-            <Tiny style={{ marginBottom: 5, textAlign: 'center' }}>PESO (KG)</Tiny>
-            <TextInput style={numInput} keyboardType="numeric" placeholder="0" placeholderTextColor={colors.textFaint} value={d.weight} onChangeText={(t) => setVal(ex.id, 'weight', t)} />
+            <Label style={{ marginBottom: 5, textAlign: 'center', fontSize: 11 }}>Peso (kg)</Label>
+            <Input
+              big placeholder="0" keyboardType="decimal-pad" returnKeyType="next" submitBehavior="submit"
+              value={d.weight} onChangeText={(t) => setVal(ex.id, 'weight', decimal(t))}
+              onSubmitEditing={() => repsRefs.current[ex.id]?.focus()}
+            />
           </View>
         )}
         <View style={{ flex: 1 }}>
-          <Tiny style={{ marginBottom: 5, textAlign: 'center' }}>{repsOnly ? 'REPS MÁX.' : 'REPS'}</Tiny>
-          <TextInput style={numInput} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.textFaint} value={d.reps} onChangeText={(t) => setVal(ex.id, 'reps', t)} />
+          <Label style={{ marginBottom: 5, textAlign: 'center', fontSize: 11 }}>{repsOnly ? 'Reps máx.' : 'Reps'}</Label>
+          <Input
+            ref={(r) => { repsRefs.current[ex.id] = r; }}
+            big placeholder="0" keyboardType="number-pad" returnKeyType="done"
+            value={d.reps} onChangeText={(t) => setVal(ex.id, 'reps', digits(t))}
+            onSubmitEditing={() => Keyboard.dismiss()}
+          />
         </View>
       </Row>
     );
@@ -195,10 +247,10 @@ export default function LogScreen() {
     const valid = isValid(ex);
     return (
       <View style={{ width, height: H, paddingHorizontal: spacing(2.5), paddingVertical: spacing(0.5) }}>
-        <Card strong style={{ flex: 1, padding: spacing(2), justifyContent: 'space-between', borderColor: valid ? colors.good : colors.glassBorderStrong }}>
+        <Card strong style={{ flex: 1, padding: spacing(2), justifyContent: 'space-between', borderColor: valid ? colors.primary : colors.glassBorderStrong }}>
           <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <Badge label={GROUP_LABELS_PT[ex.muscle_group]} color={groupColor[ex.muscle_group]} />
-            {valid ? <Badge label="✓ NO TREINO" color={colors.good} solid /> : <Tiny>{index + 1} / {list.length}</Tiny>}
+            {valid ? <Badge label="✓ No treino" color={colors.primary} solid /> : <Label style={{ fontSize: 12 }}>{index + 1} / {list.length}</Label>}
           </Row>
           <Pressable onPress={() => router.push(`/exercise/${ex.id}`)} style={{ alignItems: 'center' }}>
             <ExerciseImage exerciseId={ex.id} size={gifSize} radius={20} light />
@@ -227,7 +279,7 @@ export default function LogScreen() {
             <Body style={{ fontFamily: fonts.semibold }} numberOfLines={1}>{ex.name_pt}</Body>
             <Tiny style={{ marginTop: 2 }}>{ex.equipment}{ex.per_dumbbell ? ' · halter' : ''}{ex.metric === 'reps' ? ' · reps' : ''}</Tiny>
           </View>
-          {valid && <Ionicons name="checkmark-circle" size={18} color={colors.good} style={{ marginRight: 6 }} />}
+          {valid && <Ionicons name="checkmark-circle" size={18} color={colors.primaryBright} style={{ marginRight: 6 }} />}
           <View style={[styles.addBtn, selected && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
             <Ionicons name={selected ? 'remove' : 'add'} size={18} color={selected ? '#fff' : colors.textDim} />
           </View>
@@ -272,7 +324,10 @@ export default function LogScreen() {
         </Row>
       )}
       <Button
-        title={validInputs.length ? `Salvar treino · ${validInputs.length}` : 'Salvar treino'}
+        title={
+          (validInputs.length ? `Salvar treino · ${validInputs.length}` : 'Salvar treino') +
+          (isToday ? '' : ` · ${formatBR(date).slice(0, 5)}`)
+        }
         icon={<Ionicons name="save" size={18} color="#fff" />}
         onPress={handleSave}
         disabled={validInputs.length === 0}
@@ -281,19 +336,55 @@ export default function LogScreen() {
   );
 
   return (
-    <Screen scroll={false} contentStyle={{ paddingHorizontal: 0 }}>
+    <Screen
+      scroll={false}
+      contentStyle={{ paddingHorizontal: 0 }}
+      scrollRef={mode === 'list' ? sectionRef : null}
+      keyboardExtra={SAVE_BAR_H}
+    >
       <View style={{ paddingHorizontal: spacing(2.5) }}>
         <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <View style={{ flex: 1 }}>
-            <Label>Loop diário</Label>
-            <H1 style={{ marginTop: 4 }}>Treinei hoje</H1>
+            <Label>Registrar treino</Label>
+            <H1 style={{ marginTop: 4 }}>{isToday ? 'Treinei hoje' : 'Treino passado'}</H1>
           </View>
           {modeToggle()}
         </Row>
-        <Body style={{ color: colors.textDim, marginTop: spacing(0.5), marginBottom: spacing(1.25) }}>
+
+        {/* Data do treino: toque para marcar um dia que você esqueceu */}
+        <Pressable
+          onPress={() => { Keyboard.dismiss(); setPickerOpen(true); }}
+          style={({ pressed }) => [styles.dateChip, !isToday && styles.dateChipPast, pressed && { opacity: 0.8 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Escolher data do treino"
+        >
+          <Ionicons name="calendar" size={16} color={isToday ? colors.textDim : colors.primaryBright} />
+          <Text style={[styles.dateChipText, !isToday && { color: colors.text }]}>{friendlyDate(date)}</Text>
+          {!isToday && <Text style={styles.dateChipHint}>{formatBR(date)}</Text>}
+          <Ionicons name="chevron-down" size={14} color={colors.textFaint} style={{ marginLeft: 'auto' }} />
+        </Pressable>
+
+        <Body style={{ color: colors.textDim, marginTop: spacing(1), marginBottom: spacing(1.25) }}>
           {mode === 'list' ? 'Toque no exercício para registrar peso × reps.' : 'Deslize entre os exercícios e preencha o que você fez.'}
         </Body>
       </View>
+
+      <Modal visible={pickerOpen} transparent animationType="fade" onRequestClose={() => setPickerOpen(false)} statusBarTranslucent navigationBarTranslucent>
+        <Pressable style={styles.backdrop} onPress={() => setPickerOpen(false)}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <Label style={{ marginBottom: spacing(1) }}>Quando foi o treino?</Label>
+            <Calendar
+              selected={date}
+              trained={trainedByDay}
+              onSelect={(iso) => { setDate(iso); setPickerOpen(false); }}
+            />
+            <Row style={{ marginTop: spacing(1.5), gap: spacing(1) }}>
+              <Button title="Hoje" variant="ghost" onPress={() => { setDate(todayISO()); setPickerOpen(false); }} style={{ flex: 1 }} />
+              <Button title="Fechar" variant="ghost" onPress={() => setPickerOpen(false)} style={{ flex: 1 }} />
+            </Row>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {chips()}
 
@@ -321,14 +412,13 @@ export default function LogScreen() {
         </>
       ) : (
         <>
-          <SectionList
+          <KeyboardAwareSectionList
+            ref={sectionRef}
             sections={sections}
             keyExtractor={(e) => e.id}
             renderItem={renderRow}
             renderSectionHeader={({ section }) => (
-              <View style={{ paddingHorizontal: spacing(2.5) }}>
-                <SectionHeader title={section.title} accent={groupColor[section.group]} />
-              </View>
+              <SectionHeader title={section.title} accent={groupColor[section.group]} />
             )}
             style={{ flex: 1 }}
             contentContainerStyle={{ paddingHorizontal: spacing(2.5), paddingBottom: spacing(2) }}
@@ -346,15 +436,28 @@ export default function LogScreen() {
 }
 
 const styles = StyleSheet.create({
+  dateChip: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing(1),
+    marginTop: spacing(1.25), paddingVertical: spacing(1), paddingHorizontal: spacing(1.5),
+    borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.glassBorder,
+  },
+  dateChipPast: { borderColor: colors.primary, backgroundColor: hexA(colors.primary, 0.12) },
+  dateChipText: { fontFamily: fonts.extra, fontSize: 16, color: colors.textDim, letterSpacing: 0.6, textTransform: 'uppercase' },
+  dateChipHint: { fontFamily: fonts.medium, fontSize: 13, color: colors.textDim },
+  backdrop: { flex: 1, backgroundColor: 'rgba(5,3,3,0.72)', justifyContent: 'center', padding: spacing(2) },
+  sheet: {
+    backgroundColor: colors.bg2, borderRadius: radius.xl, padding: spacing(2),
+    borderWidth: 1, borderColor: colors.glassBorderStrong,
+  },
   checkCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  nav: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorderStrong, alignItems: 'center', justifyContent: 'center' },
-  toggle: { backgroundColor: colors.glass, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.glassBorder, padding: 3 },
-  toggleBtn: { width: 38, height: 32, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  nav: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.glassBorderStrong, alignItems: 'center', justifyContent: 'center' },
+  toggle: { backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.glassBorder, padding: 3 },
+  toggleBtn: { width: 40, height: 34, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   row: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: colors.glass, borderRadius: radius.md, borderWidth: 1, borderColor: colors.glassBorder,
     paddingHorizontal: spacing(1.25), paddingVertical: spacing(1), marginBottom: spacing(1),
   },
-  rowActive: { borderColor: colors.primary, backgroundColor: hexA(colors.primary, 0.1) },
-  addBtn: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: colors.glassBorderStrong, alignItems: 'center', justifyContent: 'center' },
+  rowActive: { borderColor: hexA(colors.primary, 0.7), backgroundColor: hexA(colors.primary, 0.1) },
+  addBtn: { width: 32, height: 32, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.glassBorderStrong, alignItems: 'center', justifyContent: 'center' },
 });
