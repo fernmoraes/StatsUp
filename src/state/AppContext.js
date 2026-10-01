@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useCallback,
 } from 'react';
@@ -12,8 +13,12 @@ import {
   saveProfile,
   loadLogs,
   saveLogs,
+  isDirty,
+  setDirty,
+  claimLocalData,
 } from '../storage/store';
 import * as auth from '../storage/auth';
+import { pushAll, pullAll } from '../storage/sync';
 import { getExercise } from '../data/exercises';
 import { computeEntry } from '../engine/calc';
 import { buildRadarState } from '../engine/selectors';
@@ -83,16 +88,66 @@ export function AppProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [logs, setLogs] = useState([]);
   const [ready, setReady] = useState(false);
+  // 'idle' | 'syncing' | 'synced' | 'pending' (mudança local ainda não enviada)
+  // | 'offline' | 'error'
+  const [syncState, setSyncState] = useState('idle');
 
-  // Carrega perfil + treinos de uma conta.
+  const userRef = useRef(null);
+  const writeSeq = useRef(0); // muda a cada escrita local
+  const syncChain = useRef(Promise.resolve()); // uma sincronização por vez
+
+  // Envia o que está pendente e (pull=true) baixa o estado oficial da nuvem.
+  const doSync = useCallback(async (uid, { pull = true } = {}) => {
+    const seq = writeSeq.current;
+    setSyncState('syncing');
+    try {
+      const [p, l, dirty] = await Promise.all([loadProfile(uid), loadLogs(uid), isDirty(uid)]);
+      if (dirty) await pushAll(uid, p, l);
+      if (pull) {
+        const remote = await pullAll(uid);
+        if (!remote.profile && p) {
+          // Nuvem vazia mas o aparelho tem dados (ex.: conta antiga): envia.
+          await pushAll(uid, p, l);
+        } else if (remote.profile && writeSeq.current === seq && userRef.current?.id === uid) {
+          // Nada mudou localmente durante o sync: a nuvem vira o estado oficial.
+          await saveProfile(uid, remote.profile);
+          await saveLogs(uid, remote.logs);
+          setProfile(remote.profile);
+          setLogs(remote.logs);
+        }
+      }
+      const clean = writeSeq.current === seq;
+      if (clean) await setDirty(uid, false);
+      if (userRef.current?.id === uid) setSyncState(clean ? 'synced' : 'pending');
+    } catch (e) {
+      const offline = /network|fetch|timed? ?out/i.test((e && e.message) || '') || e?.name === 'AuthRetryableFetchError';
+      if (userRef.current?.id === uid) setSyncState(offline ? 'offline' : 'error');
+    }
+  }, []);
+
+  const runSync = useCallback((uid, opts) => {
+    syncChain.current = syncChain.current.then(() => doSync(uid, opts)).catch(() => {});
+    return syncChain.current;
+  }, [doSync]);
+
+  // Abre a conta: dados do aparelho na hora; a nuvem atualiza em seguida.
+  // Num aparelho novo (sem cache) espera a nuvem para não mandar a pessoa
+  // refazer as perguntas iniciais à toa.
   const loadUserData = useCallback(async (u) => {
+    userRef.current = u;
+    if (await claimLocalData(u.id, u.email)) await setDirty(u.id, true);
     const [p, l] = await Promise.all([loadProfile(u.id), loadLogs(u.id)]);
     const migrated = migrateLogs(l || []);
-    if (migrated.changed) await saveLogs(u.id, migrated.logs);
+    if (migrated.changed) {
+      await saveLogs(u.id, migrated.logs);
+      await setDirty(u.id, true);
+    }
     setProfile(p);
     setLogs(migrated.logs);
     setUser(u);
-  }, []);
+    const sync = runSync(u.id);
+    if (!p) await sync;
+  }, [runSync]);
 
   // Ao abrir: retoma a conta salva ("Salvar conta"); sem ela, vai pro login.
   useEffect(() => {
@@ -103,10 +158,11 @@ export function AppProvider({ children }) {
     })();
   }, [loadUserData]);
 
+  // Retorna { user } ou { needsConfirmation } (projeto exige confirmar e-mail).
   const signUp = useCallback(async (data) => {
-    const u = await auth.signUp(data);
-    await loadUserData(u);
-    return u;
+    const res = await auth.signUp(data);
+    if (res.user) await loadUserData(res.user);
+    return res;
   }, [loadUserData]);
 
   const signIn = useCallback(async (data) => {
@@ -118,20 +174,31 @@ export function AppProvider({ children }) {
   // Sai da conta: os dados continuam salvos no aparelho para o próximo login.
   const signOut = useCallback(async () => {
     await auth.signOut();
+    userRef.current = null;
+    setSyncState('idle');
     setUser(null);
     setProfile(null);
     setLogs([]);
   }, []);
 
+  // Escritas: salva no aparelho na hora, marca pendente e envia para a nuvem.
   const persistProfile = useCallback(async (p) => {
+    writeSeq.current++;
     setProfile(p);
     await saveProfile(user.id, p);
-  }, [user]);
+    await setDirty(user.id, true);
+    runSync(user.id, { pull: false });
+  }, [user, runSync]);
 
   const persistLogs = useCallback(async (l) => {
+    writeSeq.current++;
     setLogs(l);
     await saveLogs(user.id, l);
-  }, [user]);
+    await setDirty(user.id, true);
+    runSync(user.id, { pull: false });
+  }, [user, runSync]);
+
+  const syncNow = useCallback(() => (user ? runSync(user.id) : Promise.resolve()), [user, runSync]);
 
   // Conclui onboarding: cria profile + as marcas iniciais (baseline). A data só
   // serve para ordenar: um treino registrado depois atualiza o radar.
@@ -149,7 +216,7 @@ export function AppProvider({ children }) {
         .filter(Boolean);
       const firstLog =
         entries.length > 0
-          ? [{ id: `baseline_${Date.now()}`, kind: 'baseline', date: todayISO(), entries }]
+          ? [{ id: `baseline_${Date.now()}`, kind: 'baseline', date: todayISO(), entries, created_at: new Date().toISOString() }]
           : [];
       await persistProfile(p);
       await persistLogs(firstLog);
@@ -165,7 +232,7 @@ export function AppProvider({ children }) {
       if (!profile) return null;
       const entries = entriesInput.map((inp) => makeEntry(profile, inp)).filter(Boolean);
       if (entries.length === 0) return null;
-      const log = { id: `log_${Date.now()}`, date, entries, note };
+      const log = { id: `log_${Date.now()}`, date, entries, note, created_at: new Date().toISOString() };
       const next = [log, ...logs].sort(byDateDesc);
       await persistLogs(next);
       return log;
@@ -205,6 +272,8 @@ export function AppProvider({ children }) {
     signUp,
     signIn,
     signOut,
+    syncState,
+    syncNow,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

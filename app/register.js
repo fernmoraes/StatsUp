@@ -37,10 +37,16 @@ export default function Register() {
 
     setLoading(true);
     try {
-      await signUp({ name, email, password });
+      const res = await signUp({ name, email, password });
+      if (res.needsConfirmation) {
+        // Projeto com "confirmar e-mail" ligado: entra depois de clicar no link.
+        router.replace({ pathname: '/login', params: { notice: 'confirm' } });
+        return;
+      }
       router.replace('/'); // 1º acesso → perguntas iniciais
     } catch (e) {
-      if (e.code && e.code !== 'credentials') setErrors({ [e.code]: e.message });
+      // Erro de um campo vai embaixo dele; o resto (rede, limite...) no topo.
+      if (['name', 'email', 'password'].includes(e.code)) setErrors({ [e.code]: e.message });
       else setFormError(e.message || 'Não foi possível criar a conta. Tente de novo.');
       setLoading(false);
     }
@@ -101,7 +107,7 @@ export default function Register() {
         style={{ marginTop: spacing(1) }}
       />
       <Tiny style={{ textAlign: 'center', marginTop: spacing(1.5) }}>
-        Sua conta fica salva neste aparelho.
+        Seus treinos ficam salvos na sua conta e funcionam offline.
       </Tiny>
 
       <SwitchLink question="Já tem conta?" action="Entrar" onPress={() => router.replace('/login')} />

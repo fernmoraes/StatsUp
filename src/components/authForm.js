@@ -85,6 +85,16 @@ export function FormError({ message }) {
   );
 }
 
+export function FormNotice({ message }) {
+  if (!message) return null;
+  return (
+    <Row style={styles.formNotice}>
+      <Ionicons name="mail-outline" size={18} color={colors.good} style={{ marginRight: spacing(1) }} />
+      <Text style={styles.formErrorText}>{message}</Text>
+    </Row>
+  );
+}
+
 export function SwitchLink({ question, action, onPress }) {
   return (
     <Pressable onPress={onPress} hitSlop={8} style={{ alignSelf: 'center', marginTop: spacing(2.5), padding: spacing(1) }}>
@@ -113,6 +123,10 @@ const styles = StyleSheet.create({
   formError: {
     padding: spacing(1.5), borderRadius: radius.md, marginBottom: spacing(2),
     backgroundColor: hexA(colors.bad, 0.12), borderWidth: 1, borderColor: hexA(colors.bad, 0.4),
+  },
+  formNotice: {
+    padding: spacing(1.5), borderRadius: radius.md, marginBottom: spacing(2),
+    backgroundColor: hexA(colors.good, 0.12), borderWidth: 1, borderColor: hexA(colors.good, 0.4),
   },
   formErrorText: { flex: 1, color: colors.text, fontFamily: fonts.medium, fontSize: 14 },
   switchText: { color: colors.textDim, fontFamily: fonts.regular, fontSize: 15 },

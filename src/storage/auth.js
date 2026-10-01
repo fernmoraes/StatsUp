@@ -1,18 +1,13 @@
-// Contas LOCAIS (ficam só neste aparelho). Interface pensada para ser trocada
-// pelo Supabase Auth depois: signUp / signIn / signOut / restoreSession.
-//
-// Senhas nunca são salvas em texto: guardamos SHA-256 iterado com um sal
-// aleatório por conta. Como tudo fica no próprio aparelho, isto é uma trava do
-// app, não segurança de servidor (isso vem com o backend).
+// Contas via Supabase Auth (e-mail + senha). Mesma interface da versão local:
+// signUp / signIn / signOut / restoreSession — as telas não mudam.
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Crypto from 'expo-crypto';
-import { claimLegacyData } from './store';
+import { supabase, setRememberSession, isRememberingSession } from '../lib/supabase';
 
-const K_ACCOUNTS = 'statsup:accounts:v1'; // { [emailNormalizado]: conta }
-const K_SESSION = 'statsup:session:v1'; // { userId } — só existe com "Salvar conta"
 const K_LAST_EMAIL = 'statsup:last-email:v1'; // preenche o login
+// Última conta logada com "Salvar conta": permite abrir o app sem internet.
+const K_CACHED_USER = 'statsup:cached-user:v1';
 
-const HASH_ROUNDS = 300;
+export const MIN_PASSWORD = 6;
 
 export class AuthError extends Error {
   constructor(code, message) {
@@ -23,90 +18,123 @@ export class AuthError extends Error {
 
 export const normalizeEmail = (email) => email.trim().toLowerCase();
 export const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
-export const MIN_PASSWORD = 6;
 
-const toHex = (bytes) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+const publicUser = (u) => ({
+  id: u.id,
+  email: u.email,
+  name: (u.user_metadata && u.user_metadata.name) || '',
+  created_at: u.created_at,
+});
 
-async function hashPassword(password, salt) {
-  let h = `${salt}:${password}`;
-  for (let i = 0; i < HASH_ROUNDS; i++) {
-    h = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, `${salt}:${h}`);
-  }
-  return h;
+const isNetworkError = (e) =>
+  !e || e.name === 'AuthRetryableFetchError' || /network|fetch|timed? ?out/i.test(e.message || '');
+
+// Mensagens do Supabase → português, no campo certo da tela.
+function translate(error) {
+  const msg = (error && error.message) || '';
+  const code = error && error.code;
+  if (isNetworkError(error) && !code) return new AuthError('network', 'Sem conexão com a internet. Conecte e tente de novo.');
+  if (code === 'invalid_credentials' || /invalid login credentials/i.test(msg))
+    return new AuthError('credentials', 'E-mail ou senha incorretos.');
+  if (code === 'email_not_confirmed' || /email not confirmed/i.test(msg))
+    return new AuthError('confirm', 'Confirme seu e-mail pelo link que enviamos antes de entrar.');
+  if (code === 'user_already_exists' || /already registered/i.test(msg))
+    return new AuthError('email', 'Já existe uma conta com esse e-mail. Entre com ela.');
+  if (code === 'weak_password' || /password/i.test(msg))
+    return new AuthError('password', `Senha fraca. Use pelo menos ${MIN_PASSWORD} caracteres.`);
+  if (code === 'email_address_invalid' || /email.*invalid/i.test(msg))
+    return new AuthError('email', 'E-mail inválido.');
+  if (code === 'over_email_send_rate_limit' || code === 'over_request_rate_limit' || /rate limit/i.test(msg))
+    return new AuthError('rate', 'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.');
+  return new AuthError('unknown', 'Não foi possível concluir. Tente de novo.');
 }
 
-async function loadAccounts() {
-  try {
-    const raw = await AsyncStorage.getItem(K_ACCOUNTS);
-    return raw ? JSON.parse(raw) : {};
-  } catch (e) {
-    return {};
-  }
+async function rememberUser(user) {
+  await AsyncStorage.multiSet([
+    [K_LAST_EMAIL, user.email],
+    [K_CACHED_USER, JSON.stringify(user)],
+  ]);
 }
 
-// O que o app vê da conta (sem sal/hash).
-const publicUser = ({ id, name, email, created_at }) => ({ id, name, email, created_at });
-
+// Retorna { user } ou { needsConfirmation: true } quando o projeto exige
+// confirmar o e-mail antes do primeiro login.
 export async function signUp({ name, email, password }) {
   const cleanName = name.trim();
   if (!cleanName) throw new AuthError('name', 'Informe seu nome.');
   if (!isValidEmail(email)) throw new AuthError('email', 'E-mail inválido.');
   if (password.length < MIN_PASSWORD) throw new AuthError('password', `A senha precisa de pelo menos ${MIN_PASSWORD} caracteres.`);
 
-  const accounts = await loadAccounts();
-  const key = normalizeEmail(email);
-  if (accounts[key]) throw new AuthError('email', 'Já existe uma conta com esse e-mail. Entre com ela.');
-
-  const salt = toHex(Crypto.getRandomBytes(16));
-  const account = {
-    id: Crypto.randomUUID(),
-    name: cleanName,
-    email: key,
-    salt,
-    hash: await hashPassword(password, salt),
-    created_at: new Date().toISOString(),
-  };
-  const isFirstAccount = Object.keys(accounts).length === 0;
-  accounts[key] = account;
-  await AsyncStorage.setItem(K_ACCOUNTS, JSON.stringify(accounts));
-
-  // Dados de antes do login (perfil/treinos sem dono) vão para a 1ª conta.
-  if (isFirstAccount) await claimLegacyData(account.id);
-
-  // Cadastro já entra com a conta salva.
-  await AsyncStorage.multiSet([
-    [K_SESSION, JSON.stringify({ userId: account.id })],
-    [K_LAST_EMAIL, key],
-  ]);
-  return publicUser(account);
+  await setRememberSession(true); // cadastro já entra com a conta salva
+  let res;
+  try {
+    res = await supabase.auth.signUp({
+      email: normalizeEmail(email),
+      password,
+      options: { data: { name: cleanName } },
+    });
+  } catch (e) {
+    throw translate(e);
+  }
+  if (res.error) throw translate(res.error);
+  // Com "confirmar e-mail" ligado, o Supabase responde sem sessão (e, por
+  // segurança, também sem erro quando o e-mail já existe).
+  if (!res.data.session) {
+    await AsyncStorage.setItem(K_LAST_EMAIL, normalizeEmail(email));
+    return { needsConfirmation: true };
+  }
+  const user = publicUser(res.data.user);
+  await rememberUser(user);
+  return { user };
 }
 
 export async function signIn({ email, password, remember }) {
-  const accounts = await loadAccounts();
-  const account = accounts[normalizeEmail(email)];
-  // Mesma mensagem para e-mail inexistente e senha errada (não revela contas).
-  const fail = () => new AuthError('credentials', 'E-mail ou senha incorretos.');
-  if (!account) throw fail();
-  if ((await hashPassword(password, account.salt)) !== account.hash) throw fail();
-
-  await AsyncStorage.setItem(K_LAST_EMAIL, account.email);
-  if (remember) await AsyncStorage.setItem(K_SESSION, JSON.stringify({ userId: account.id }));
-  else await AsyncStorage.removeItem(K_SESSION);
-  return publicUser(account);
+  await setRememberSession(!!remember);
+  let res;
+  try {
+    res = await supabase.auth.signInWithPassword({ email: normalizeEmail(email), password });
+  } catch (e) {
+    throw translate(e);
+  }
+  if (res.error) throw translate(res.error);
+  const user = publicUser(res.data.user);
+  if (remember) await rememberUser(user);
+  else {
+    await AsyncStorage.setItem(K_LAST_EMAIL, user.email);
+    await AsyncStorage.removeItem(K_CACHED_USER);
+  }
+  return user;
 }
 
 export async function signOut() {
-  await AsyncStorage.removeItem(K_SESSION);
+  // 'local' encerra só neste aparelho e funciona mesmo sem internet.
+  try {
+    await supabase.auth.signOut({ scope: 'local' });
+  } catch (e) {
+    // sem rede: a sessão local é apagada mesmo assim
+  }
+  await AsyncStorage.removeItem(K_CACHED_USER);
 }
 
-// Sessão salva ("Salvar conta") ao abrir o app. Sem ela, volta para o login.
+// Ao abrir o app. Com "Salvar conta", retoma a sessão; sem internet, usa a
+// última conta salva para abrir com os dados do aparelho.
 export async function restoreSession() {
+  if (!(await isRememberingSession())) return null;
   try {
-    const raw = await AsyncStorage.getItem(K_SESSION);
-    if (!raw) return null;
-    const { userId } = JSON.parse(raw);
-    const account = Object.values(await loadAccounts()).find((a) => a.id === userId);
-    return account ? publicUser(account) : null;
+    const { data, error } = await supabase.auth.getSession();
+    if (data && data.session) {
+      const user = publicUser(data.session.user);
+      await rememberUser(user);
+      return user;
+    }
+    // Sem sessão e sem falha de rede = deslogado de verdade.
+    if (!error || !isNetworkError(error)) return null;
+  } catch (e) {
+    if (!isNetworkError(e)) return null;
+  }
+  // Falha de rede: abre offline com a última conta salva.
+  try {
+    const raw = await AsyncStorage.getItem(K_CACHED_USER);
+    return raw ? JSON.parse(raw) : null;
   } catch (e) {
     return null;
   }

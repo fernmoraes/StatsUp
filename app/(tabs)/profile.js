@@ -24,9 +24,35 @@ function InfoCol({ label, value, unit }) {
   );
 }
 
+// Estado da sincronização com a nuvem (sempre com ícone + texto).
+const SYNC_UI = {
+  idle: { icon: 'cloud-outline', color: colors.textFaint, text: 'Conectando à nuvem…' },
+  syncing: { icon: 'sync', color: colors.textDim, text: 'Sincronizando…' },
+  synced: { icon: 'cloud-done-outline', color: colors.good, text: 'Tudo salvo na nuvem' },
+  pending: { icon: 'cloud-upload-outline', color: colors.warn, text: 'Alterações aguardando envio' },
+  offline: { icon: 'cloud-offline-outline', color: colors.warn, text: 'Sem internet · salvo no aparelho, envia quando conectar' },
+  error: { icon: 'alert-circle-outline', color: colors.bad, text: 'Não foi possível sincronizar' },
+};
+
+function SyncRow({ state, onRetry }) {
+  const ui = SYNC_UI[state] || SYNC_UI.idle;
+  const canRetry = state === 'offline' || state === 'error' || state === 'pending';
+  return (
+    <Card style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing(1.5) }}>
+      <Ionicons name={ui.icon} size={20} color={ui.color} style={{ marginRight: spacing(1.25) }} />
+      <Small style={{ flex: 1, color: colors.text }}>{ui.text}</Small>
+      {canRetry ? (
+        <Pressable onPress={onRetry} hitSlop={8} accessibilityRole="button">
+          <Text style={{ color: colors.primaryBright, fontFamily: fonts.bold }}>Tentar de novo</Text>
+        </Pressable>
+      ) : null}
+    </Card>
+  );
+}
+
 export default function Profile() {
   const router = useRouter();
-  const { user, profile, updateProfile, signOut } = useApp();
+  const { user, profile, updateProfile, signOut, syncState, syncNow } = useApp();
   const [weight, setWeight] = useState(profile ? String(profile.bodyweight_kg) : '');
 
   if (!profile) return null;
@@ -151,12 +177,14 @@ export default function Profile() {
         <Tiny style={{ marginTop: spacing(1) }}>Aplica-se aos próximos registros.</Tiny>
       </Card>
 
+      <SyncRow state={syncState} onRetry={syncNow} />
+
       <Button title="Sair da conta" variant="danger" icon={<Ionicons name="log-out-outline" size={18} color={colors.bad} />} onPress={confirmSignOut} style={{ marginTop: spacing(0.5) }} />
 
       <View style={{ alignItems: 'center', marginTop: spacing(3), opacity: 0.55 }}>
         <BrandMark size={26} />
         <Small style={{ textAlign: 'center', marginTop: spacing(1), color: colors.textFaint }}>
-          StatsUp · força em percentil · 100% offline
+          StatsUp · força em percentil · funciona offline
         </Small>
       </View>
     </Screen>

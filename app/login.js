@@ -1,16 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../src/state/AppContext';
 import { Screen, Button } from '../src/components/ui';
 import {
-  AuthHeader, Field, PasswordField, Checkbox, FormError, SwitchLink,
+  AuthHeader, Field, PasswordField, Checkbox, FormError, FormNotice, SwitchLink,
 } from '../src/components/authForm';
 import { getLastEmail, isValidEmail } from '../src/storage/auth';
 
 export default function Login() {
   const router = useRouter();
+  const { notice } = useLocalSearchParams();
   const { signIn } = useApp();
   const passwordRef = useRef(null);
 
@@ -49,6 +50,9 @@ export default function Login() {
     <Screen>
       <AuthHeader title="Entrar" subtitle="Bem-vindo de volta. Seu radar está te esperando." />
 
+      {notice === 'confirm' && !formError ? (
+        <FormNotice message="Conta criada. Abra o link que enviamos para o seu e-mail para confirmar e depois entre aqui." />
+      ) : null}
       <FormError message={formError} />
 
       <Field
