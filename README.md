@@ -34,6 +34,21 @@ app funciona logo após o `npm install`. Se mudar o `.env`, reinicie com
 
 > Requer Node 20.19+ (exigência do React Native 0.86) e Expo SDK 57.
 
+## Gerar o APK (Android)
+
+Versão atual: **1.0.0-beta**. O build é feito na nuvem da Expo (EAS), sem precisar de
+Android Studio:
+
+```bash
+npm install -g eas-cli
+eas login
+eas build -p android --profile preview   # gera um .apk instalável
+```
+
+Ao terminar, o EAS mostra um link/QR code para baixar e instalar o APK no celular.
+Perfis em [`eas.json`](eas.json): `preview` (APK para testes) e `production`
+(AAB para a Play Store).
+
 ## Funcionalidades
 
 - **Conta** com nome, e-mail e senha (Supabase Auth), opção **Salvar conta** e **Sair da conta**.

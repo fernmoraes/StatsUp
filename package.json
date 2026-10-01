@@ -1,6 +1,6 @@
 {
   "name": "statsup",
-  "version": "1.0.0",
+  "version": "1.0.0-beta",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",

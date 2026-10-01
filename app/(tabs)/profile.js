@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '../../src/state/AppContext';
@@ -193,6 +194,9 @@ export default function Profile() {
         <BrandMark size={26} />
         <Small style={{ textAlign: 'center', marginTop: spacing(1), color: colors.textFaint }}>
           StatsUp · força em percentil · funciona offline
+        </Small>
+        <Small style={{ textAlign: 'center', marginTop: 2, color: colors.textFaint }}>
+          Versão {Constants.expoConfig?.version || '—'}
         </Small>
       </View>
     </Screen>
