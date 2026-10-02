@@ -56,6 +56,12 @@ const isNetworkError = (e) =>
 function translate(error) {
   const msg = (error && error.message) || '';
   const code = error && error.code;
+  // O Supabase marca erro 5xx do servidor como "AuthRetryableFetchError", igual
+  // à falta de internet. Separa os dois para não culpar a conexão da pessoa.
+  if (/sending.*email|confirmation email|smtp/i.test(msg))
+    return new AuthError('server', 'Não conseguimos enviar o e-mail de confirmação agora. Tente de novo em alguns minutos.');
+  if (error && error.status >= 500)
+    return new AuthError('server', 'O servidor está com instabilidade. Tente de novo em alguns minutos.');
   if (isNetworkError(error) && !code) return new AuthError('network', 'Sem conexão com a internet. Conecte e tente de novo.');
   if (code === 'invalid_credentials' || /invalid login credentials/i.test(msg))
     return new AuthError('credentials', 'E-mail ou senha incorretos.');
