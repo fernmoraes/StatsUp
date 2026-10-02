@@ -134,6 +134,20 @@ if (!online || !url) {
     check(`Sem login: NÃO apaga ${t}`, !(await isLeak(del)), `HTTP ${del.status}`);
   }
 
+  // Storage: o app não guarda arquivos. Se um dia existir um bucket, ele não
+  // pode ser listável/legível sem login (teria que ter políticas próprias).
+  const buckets = await fetch(`${url}/storage/v1/bucket`, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+  let bucketList = [];
+  if (buckets.ok) {
+    try {
+      bucketList = await buckets.json();
+    } catch {
+      bucketList = [];
+    }
+  }
+  const openBuckets = Array.isArray(bucketList) ? bucketList.map((b) => `${b.name}${b.public ? ' (público)' : ''}`) : [];
+  check('Storage: nenhum bucket visível sem login', openBuckets.length === 0, `HTTP ${buckets.status}${openBuckets.length ? ': ' + openBuckets.join(', ') : ''}`);
+
   const root = await fetch(`${url}/rest/v1/`, { headers: { apikey: key } });
   let paths = [];
   if (root.ok) {

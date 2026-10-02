@@ -12,6 +12,50 @@ Como cada item de segurança é atendido, onde está no código e como verificar
 | 6 | **HTTPS/TLS** | O app recusa URL do Supabase sem `https://`. A API do Supabase e o GitHub Pages só servem HTTPS (HTTP redireciona). Não existe backend próprio. O build Android de release bloqueia tráfego sem TLS por padrão. | `src/services/supabase.js` |
 | 7 | **Testes de segurança** | (a) `rls_test.sql`: dois usuários reais tentando ler/alterar/apagar/se passar um pelo outro, anon, e injeção. (b) `npm run security`: segredos, configuração e ataques reais à API sem login — roda no GitHub a cada push. | `supabase/tests/rls_test.sql`, `scripts/security-check.mjs`, `.github/workflows/security.yml` |
 
+## Segunda lista
+
+| Item | Situação | Onde |
+|---|---|---|
+| **Supabase Auth** | Login/cadastro usam o Supabase Auth (nada de autenticação caseira): hash bcrypt, tokens JWT assinados, limite de tentativas. | `src/services/auth.js` |
+| **Políticas do Storage** | O app **não guarda arquivos**, então não existe bucket. O teste automático falha se algum dia um bucket ficar visível sem login. | `scripts/security-check.mjs` |
+| **Validação de entradas** | Um módulo com **os mesmos limites do banco** valida cada campo na tela (data real, altura 50–260 cm, peso 20–400 kg, carga 0,5–1000 kg, reps 1–1000, nome ≤ 60) e a sincronização descarta o que o banco recusaria, para nada travar. No banco, as regras CHECK barram o que vier direto pela API. Não há Edge Functions. | `src/utils/validation.js`, `src/services/sync.js`, migração de segurança |
+| **Validação de JWT no backend** | Não há backend próprio: o Supabase valida o JWT em toda requisição e o RLS usa o `auth.uid()` desse token validado. No app, ao abrir, a sessão salva é conferida no servidor (`getUser`): conta apagada ou sessão revogada sai da conta. | `src/services/auth.js` (`restoreSession`) |
+| **Backups e recuperação** | Backup semanal automático no GitHub (papéis, esquema, contas e dados), **criptografado com AES-256** e guardado por 90 dias. Restauração abaixo. | `.github/workflows/backup.yml` |
+| **Publishable key no frontend** | Só a publishable key vai no app; o app recusa secret key e o teste confere a chave do `.env`. | `src/services/supabase.js`, `scripts/security-check.mjs` |
+
+## Backups
+
+O plano grátis do Supabase não oferece backup para baixar, então o backup é feito
+pela action **Backup do banco** (toda segunda-feira, ou manualmente em *Actions →
+Backup do banco → Run workflow*).
+
+**Ativar (uma vez)** — no GitHub: *Settings → Secrets and variables → Actions →
+New repository secret*:
+
+- `SUPABASE_DB_URL`: no Supabase, botão **Connect** → **Session pooler** → copie a
+  URI e troque `[YOUR-PASSWORD]` pela senha do banco. (A "Direct connection" não
+  funciona no GitHub: é só IPv6.)
+- `BACKUP_PASSPHRASE`: uma senha longa, só para os backups. **Guarde-a**: sem ela
+  o backup não abre.
+
+**Restaurar** — baixe o artifact da execução em *Actions*, e então:
+
+```bash
+# 1. Descriptografar e descompactar (pede a BACKUP_PASSPHRASE)
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 250000 \
+  -in statsup-backup-AAAA-MM-DD.tar.gz.enc | tar -xzf -
+
+# 2. Restaurar no projeto de destino
+psql --single-transaction --variable ON_ERROR_STOP=1 \
+  --file roles.sql --file schema.sql \
+  --command 'SET session_replication_role = replica' \
+  --file data.sql \
+  --dbname "<connection string do projeto de destino>"
+```
+
+O cache criptografado em cada celular também funciona como cópia local: se a nuvem
+perder dados recentes, o que estava pendente no aparelho é reenviado.
+
 **Extra — dados criptografados no celular:** a sessão de login (tokens), o perfil e
 os treinos ficam cifrados com **AES-256** no aparelho. A chave fica no cofre do
 sistema (Android Keystore / iOS Keychain) e é trocada a cada gravação. Quem copiar

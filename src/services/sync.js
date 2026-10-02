@@ -6,6 +6,7 @@
 //     tudo da nuvem (pull), que passa a ser o estado oficial do aparelho.
 // O app não apaga treinos, então o push é um upsert do estado inteiro.
 import { supabase } from './supabase';
+import { isValidProfileRow, isValidWorkoutRow, isValidEntryRow } from '../utils/validation';
 
 // --------------------------------------------------------------- app → banco
 const profileRow = (userId, p) => ({
@@ -54,11 +55,15 @@ const check = ({ error }) => {
   if (error) throw error;
 };
 
+// Envia só o que passa nas mesmas regras do banco: um dado inválido antigo
+// (salvo antes da validação existir) nunca trava a sincronização.
 export async function pushAll(userId, profile, logs) {
-  if (profile) check(await supabase.from('profiles').upsert(profileRow(userId, profile)));
-  if (logs.length) {
-    check(await supabase.from('workouts').upsert(logs.map((l) => workoutRow(userId, l))));
-    const entries = logs.flatMap((l) => entryRows(userId, l));
+  const p = profile ? profileRow(userId, profile) : null;
+  if (p && isValidProfileRow(p)) check(await supabase.from('profiles').upsert(p));
+  const validLogs = logs.filter((l) => isValidWorkoutRow(workoutRow(userId, l)));
+  if (validLogs.length) {
+    check(await supabase.from('workouts').upsert(validLogs.map((l) => workoutRow(userId, l))));
+    const entries = validLogs.flatMap((l) => entryRows(userId, l)).filter(isValidEntryRow);
     if (entries.length) check(await supabase.from('workout_entries').upsert(entries));
   }
 }

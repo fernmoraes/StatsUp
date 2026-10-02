@@ -13,6 +13,7 @@ import ExerciseImage from '../../src/components/ExerciseImage';
 import Calendar from '../../src/components/Calendar';
 import { DialogShell } from '../../src/components/dialog';
 import { todayISO, friendlyDate, formatBR } from '../../src/utils/date';
+import { validateSet, isBlankSet } from '../../src/utils/validation';
 import { EXERCISES, MUSCLE_GROUPS, GROUP_LABELS_PT, getExercise } from '../../src/data/exercises';
 import { LEVEL_LABELS_PT, LEVELS } from '../../src/data/levels';
 import {
@@ -102,7 +103,7 @@ export default function LogScreen() {
   const isValid = (ex) => {
     const d = draft[ex.id];
     if (!d) return false;
-    return ex.metric === 'reps' ? Number(d.reps) > 0 : Number(d.weight) > 0 && Number(d.reps) > 0;
+    return !validateSet(ex, d.weight, d.reps);
   };
 
   const validInputs = useMemo(() => {
@@ -110,7 +111,7 @@ export default function LogScreen() {
     for (const ex of EXERCISES) {
       const d = draft[ex.id];
       if (!d) continue;
-      const ok = ex.metric === 'reps' ? Number(d.reps) > 0 : Number(d.weight) > 0 && Number(d.reps) > 0;
+      const ok = !validateSet(ex, d.weight, d.reps);
       if (ok) out.push({ exercise_id: ex.id, weight: d.weight, reps: d.reps });
     }
     return out;
@@ -219,7 +220,10 @@ export default function LogScreen() {
   const renderInputs = (ex) => {
     const repsOnly = ex.metric === 'reps';
     const d = draft[ex.id] || { weight: '', reps: '' };
+    // Mesmos limites do banco: valor fora da faixa não entra no treino.
+    const error = isBlankSet(ex, d.weight, d.reps) ? null : validateSet(ex, d.weight, d.reps);
     return (
+      <View>
       <Row>
         {!repsOnly && (
           <View style={{ flex: 1, marginRight: spacing(1.5) }}>
@@ -241,6 +245,8 @@ export default function LogScreen() {
           />
         </View>
       </Row>
+      {error ? <Text style={styles.setError}>{error}</Text> : null}
+      </View>
     );
   };
 
@@ -433,6 +439,7 @@ export default function LogScreen() {
 }
 
 const styles = StyleSheet.create({
+  setError: { color: colors.bad, fontFamily: fonts.medium, fontSize: 13, marginTop: 6, textAlign: 'center' },
   dateChip: {
     flexDirection: 'row', alignItems: 'center', gap: spacing(1),
     marginTop: spacing(1.25), paddingVertical: spacing(1), paddingHorizontal: spacing(1.5),

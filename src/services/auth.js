@@ -143,7 +143,15 @@ export async function restoreSession() {
   try {
     const { data, error } = await supabase.auth.getSession();
     if (data && data.session) {
-      const user = publicUser(data.session.user);
+      // getSession só lê o que está salvo no aparelho. getUser manda o JWT ao
+      // servidor, que confere assinatura/validade: conta apagada ou sessão
+      // revogada não continua "logada". Sem internet, segue com a sessão salva.
+      const check = await supabase.auth.getUser();
+      if (check.error && !isNetworkError(check.error)) {
+        await signOut();
+        return null;
+      }
+      const user = publicUser((check.data && check.data.user) || data.session.user);
       await rememberUser(user);
       return user;
     }

@@ -20,15 +20,21 @@ import { GOALS } from '../src/data/goals';
 import { ONBOARDING_ANCHORS, getExercise, GROUP_LABELS_PT, exercisesByGroup, MUSCLE_GROUPS } from '../src/data/exercises';
 import { buildRadarState } from '../src/engine/selectors';
 import { LEVEL_LABELS_PT } from '../src/data/levels';
+import {
+  validateBirthDate, validateHeight, validateBodyweight, validateSet, isBlankSet, toNumber,
+} from '../src/utils/validation';
 
-function Field({ label, children }) {
+function Field({ label, error, children }) {
   return (
     <View style={{ marginBottom: spacing(1.75) }}>
       <Label style={{ marginBottom: spacing(0.75) }}>{label}</Label>
       {children}
+      {error ? <Text style={fieldErrorStyle}>{error}</Text> : null}
     </View>
   );
 }
+
+const fieldErrorStyle = { color: colors.bad, fontFamily: fonts.medium, fontSize: 13, marginTop: 6 };
 
 export default function Onboarding() {
   const router = useRouter();
@@ -60,7 +66,13 @@ export default function Onboarding() {
     return o;
   });
 
-  const basicsValid = height && weight && year && Number(year) > 1900 && Number(year) < 2020;
+  // Mesmos limites do banco (src/utils/validation). O erro só aparece depois que
+  // o campo foi preenchido, para não pintar de vermelho antes de digitar.
+  const birthError = validateBirthDate(day, month, year);
+  const heightError = validateHeight(height);
+  const weightError = validateBodyweight(weight);
+  const basicsValid = !birthError && !heightError && !weightError;
+  const showBirthError = year.length === 4 && day && month ? birthError : null;
 
   const profileDraft = useMemo(() => {
     const d = String(day || 1).padStart(2, '0');
@@ -68,8 +80,8 @@ export default function Onboarding() {
     return {
       sex,
       birth_date: `${year || 2000}-${m}-${d}`,
-      height_cm: Number(height) || 0,
-      bodyweight_kg: Number(weight) || 0,
+      height_cm: toNumber(height) || 0,
+      bodyweight_kg: toNumber(weight) || 0,
       goal,
     };
   }, [sex, day, month, year, height, weight, goal]);
@@ -80,8 +92,7 @@ export default function Onboarding() {
       const a = anchors[g];
       if (a.skipped) continue;
       const ex = getExercise(a.exerciseId);
-      const ok = ex.metric === 'reps' ? Number(a.reps) > 0 : Number(a.weight) > 0 && Number(a.reps) > 0;
-      if (ok) out.push({ exercise_id: a.exerciseId, weight: a.weight, reps: a.reps });
+      if (!validateSet(ex, a.weight, a.reps)) out.push({ exercise_id: a.exerciseId, weight: a.weight, reps: a.reps });
     }
     return out;
   }, [anchors]);
@@ -141,7 +152,7 @@ export default function Onboarding() {
             </Row>
           </Field>
 
-          <Field label="Data de nascimento">
+          <Field label="Data de nascimento" error={showBirthError}>
             <Row>
               <Input
                 style={{ flex: 1, marginRight: spacing(1), textAlign: 'center' }}
@@ -171,7 +182,7 @@ export default function Onboarding() {
 
           <Row>
             <View style={{ flex: 1, marginRight: spacing(1.5) }}>
-              <Field label="Altura (cm)">
+              <Field label="Altura (cm)" error={height ? heightError : null}>
                 <Input
                   ref={heightRef}
                   placeholder="175" keyboardType="number-pad" maxLength={3} returnKeyType="next" submitBehavior="submit"
@@ -181,7 +192,7 @@ export default function Onboarding() {
               </Field>
             </View>
             <View style={{ flex: 1 }}>
-              <Field label="Peso (kg)">
+              <Field label="Peso (kg)" error={weight ? weightError : null}>
                 <Input
                   ref={weightRef}
                   placeholder="80" keyboardType="decimal-pad" maxLength={5} returnKeyType="done"
@@ -313,6 +324,9 @@ export default function Onboarding() {
                 </View>
               </Row>
             )}
+            {!state.skipped && !isBlankSet(ex, state.weight, state.reps) && validateSet(ex, state.weight, state.reps) ? (
+              <Text style={[fieldErrorStyle, { textAlign: 'center' }]}>{validateSet(ex, state.weight, state.reps)}</Text>
+            ) : null}
 
             <Row style={{ justifyContent: 'center', marginTop: spacing(2), marginBottom: spacing(1) }}>
               {ONBOARDING_ANCHORS.map((_, i) => (

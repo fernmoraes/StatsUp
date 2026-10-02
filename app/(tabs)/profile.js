@@ -12,6 +12,7 @@ import {
 import { colors, spacing, radius, font, fonts, gradients, hexA } from '../../src/theme';
 import { GOALS, getGoal } from '../../src/data/goals';
 import { useDialog } from '../../src/components/dialog';
+import { validateBodyweight, toNumber } from '../../src/utils/validation';
 import { ageFromBirthDate } from '../../src/data/levels';
 
 function InfoCol({ label, value, unit }) {
@@ -57,18 +58,19 @@ export default function Profile() {
   const { user, profile, updateProfile, signOut, syncState, syncNow, openTutorial } = useApp();
   const { confirm, toast } = useDialog();
   const [weight, setWeight] = useState(profile ? String(profile.bodyweight_kg) : '');
+  const [weightError, setWeightError] = useState(null);
 
   if (!profile) return null;
   const age = ageFromBirthDate(profile.birth_date);
   const goal = getGoal(profile.goal);
 
   const saveWeight = async () => {
-    const w = Number(weight);
     Keyboard.dismiss();
-    if (w > 0) {
-      await updateProfile({ bodyweight_kg: w });
-      toast({ title: 'Peso atualizado', message: 'Os próximos registros usam este peso. O histórico continua igual.' });
-    }
+    const error = validateBodyweight(weight);
+    setWeightError(error);
+    if (error) return;
+    await updateProfile({ bodyweight_kg: toNumber(weight) });
+    toast({ title: 'Peso atualizado', message: 'Os próximos registros usam este peso. O histórico continua igual.' });
   };
 
   // Sair não apaga nada: perfil e treinos ficam salvos para o próximo login.
@@ -135,11 +137,15 @@ export default function Profile() {
           <Input
             style={{ flex: 1, marginRight: spacing(1), textAlign: 'center', fontFamily: fonts.bold }}
             keyboardType="decimal-pad" returnKeyType="done" placeholder="kg"
-            value={weight} onChangeText={(t) => setWeight(t.replace(',', '.').replace(/[^0-9.]/g, ''))}
+            value={weight}
+            onChangeText={(t) => { setWeight(t.replace(',', '.').replace(/[^0-9.]/g, '')); setWeightError(null); }}
             onSubmitEditing={saveWeight}
           />
           <Button title="Salvar" onPress={saveWeight} style={{ paddingHorizontal: spacing(3) }} />
         </Row>
+        {weightError ? (
+          <Text style={{ color: colors.bad, fontFamily: fonts.medium, fontSize: 13, marginTop: 6 }}>{weightError}</Text>
+        ) : null}
       </Card>
 
       {/* Objetivo */}
