@@ -1,0 +1,70 @@
+# Monitoramento diário do banco. Confere sinais de abuso, espaço e regressões de
+# segurança; se algo passar do limite, a action FALHA e o GitHub manda e-mail.
+# Usa o mesmo secret do backup (SUPABASE_DB_URL). Só imprime números agregados:
+# o repositório é público e os logs também.
+name: Monitoramento
+
+on:
+  schedule:
+    - cron: '0 11 * * *' # todo dia, 11:00 UTC (08:00 em Brasília)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Coletar métricas
+        id: metrics
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::warning::Monitoramento desligado: cadastre o secret SUPABASE_DB_URL."
+            exit 0
+          fi
+          command -v psql >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client; }
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -At -f scripts/monitor.sql > metrics.txt
+          cat metrics.txt
+
+      - name: Avaliar limites
+        if: hashFiles('metrics.txt') != ''
+        run: |
+          # métrica | limite (alerta se o valor PASSAR do limite) | explicação
+          LIMITS='
+          cadastros_1h|20|Muitos cadastros em 1 hora (possível robô)
+          cadastros_24h|100|Muitos cadastros em 24 horas
+          maior_volume_uma_conta_24h|80|Uma conta perto da cota de 100 treinos/24h (possível abuso)
+          maior_volume_uma_conta_total|4000|Uma conta perto da cota de 5000 treinos
+          banco_mb|400|Banco perto do limite de 500 MB do plano grátis
+          tabelas_public_sem_rls|0|Tabela exposta SEM RLS
+          politicas_abertas|0|Política com using/with check (true)
+          anon_com_privilegio|0|Papel anon (sem login) com privilégio em tabela
+          '
+          {
+            echo "## Monitoramento do StatsUp"
+            echo "| Métrica | Valor | Limite | |"
+            echo "|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          ALERTS=0
+          while IFS='|' read -r name value; do
+            [ -z "$name" ] && continue
+            rule=$(printf '%s\n' "$LIMITS" | sed 's/^ *//' | grep "^$name|" || true)
+            limit=$(printf '%s' "$rule" | cut -d'|' -f2)
+            why=$(printf '%s' "$rule" | cut -d'|' -f3)
+            status="✅"
+            if [ -n "$limit" ] && [ "$value" -gt "$limit" ]; then
+              status="🚨"; ALERTS=$((ALERTS + 1))
+              echo "::error::$why ($name = $value, limite $limit)"
+            fi
+            echo "| $name | $value | ${limit:--} | $status |" >> "$GITHUB_STEP_SUMMARY"
+          done < metrics.txt
+          if [ "$ALERTS" -gt 0 ]; then
+            echo "$ALERTS alerta(s). Veja Supabase → Logs (Auth/API) para investigar."
+            exit 1
+          fi
+          echo "Tudo dentro do normal."

@@ -23,6 +23,19 @@ Como cada item de segurança é atendido, onde está no código e como verificar
 | **Backups e recuperação** | Backup semanal automático no GitHub (papéis, esquema, contas e dados), **criptografado com AES-256** e guardado por 90 dias. Restauração abaixo. | `.github/workflows/backup.yml` |
 | **Publishable key no frontend** | Só a publishable key vai no app; o app recusa secret key e o teste confere a chave do `.env`. | `src/services/supabase.js`, `scripts/security-check.mjs` |
 
+## Terceira lista
+
+| Item | Situação | Onde |
+|---|---|---|
+| **Proteção contra abuso** | **Cotas no banco**: até 100 treinos novos por conta a cada 24 h, 5000 no total e 60 exercícios por treino (reenvios da sincronização não contam; o horário de inserção é do banco, não do app). **Espera progressiva no login**: depois de 3 senhas erradas, 15 s, 30 s, 1 min… até 5 min. O Supabase ainda limita tentativas por IP no servidor. | `supabase/migrations/20261003120000_abuse_protection.sql`, `src/services/auth.js` |
+| **Armazenamento seguro de tokens** | Token cifrado com AES-256, chave no Keystore/Keychain marcada como **"só neste aparelho, só desbloqueado"** (não vai para backup do iCloud). **Backup automático do Android desligado** (`allowBackup: false`). | `src/storage/secureStorage.js`, `app.json` |
+| **Logs e monitoramento** | Action **diária** que mede cadastros, volume por conta, espaço do banco e regressões de segurança (tabela sem RLS, política aberta, `anon` com privilégio). Passou do limite → a action falha e o GitHub manda e-mail. Só números agregados (os logs são públicos). Para investigar: Supabase → *Logs* (Auth e API). | `.github/workflows/monitor.yml`, `scripts/monitor.sql` |
+| **Supabase Vault** | **Não se aplica**: o banco não guarda chaves de serviços de terceiros. A chave da API dos GIFs só foi usada no build e não está no app nem no banco. Se um dia for preciso guardar uma, ela vai para o Vault. | — |
+
+**CAPTCHA (decisão):** o Supabase aceita hCaptcha/Turnstile no cadastro, mas no app
+isso exige uma tela web embutida e piora o cadastro. Fica para quando o
+monitoramento mostrar sinal de robôs (alerta de muitos cadastros por hora).
+
 ## Backups
 
 O plano grátis do Supabase não oferece backup para baixar, então o backup é feito
@@ -63,7 +76,8 @@ os arquivos do app não consegue ler nada. (`src/storage/secureStorage.js`)
 
 ## Configuração no painel do Supabase (uma vez)
 
-1. **SQL Editor** → rode `supabase/migrations/20261002120000_security_hardening.sql`.
+1. **SQL Editor** → rode `supabase/migrations/20261002120000_security_hardening.sql`
+   e depois `supabase/migrations/20261003120000_abuse_protection.sql`.
 2. **SQL Editor** → rode `supabase/tests/rls_test.sql`. Todas as linhas devem
    mostrar ✅ PASSOU.
 3. **Authentication → Sign In / Providers → Email** (ou *Authentication →

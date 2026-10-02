@@ -123,7 +123,9 @@ export function AppProvider({ children }) {
       if (userRef.current?.id === uid) setSyncState(clean ? 'synced' : 'pending');
     } catch (e) {
       const offline = /network|fetch|timed? ?out/i.test((e && e.message) || '') || e?.name === 'AuthRetryableFetchError';
-      if (userRef.current?.id === uid) setSyncState(offline ? 'offline' : 'error');
+      // Cota contra abuso do banco (migração abuse_protection) estourada.
+      const quota = /^quota_/.test((e && e.hint) || '');
+      if (userRef.current?.id === uid) setSyncState(quota ? 'quota' : offline ? 'offline' : 'error');
     }
   }, []);
 

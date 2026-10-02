@@ -51,7 +51,11 @@ export async function setItem(key, value) {
     return;
   }
   const keyBytes = Crypto.getRandomBytes(32); // AES-256, chave nova a cada gravação
-  await SecureStore.setItemAsync(vaultKey(key), aesjs.utils.hex.fromBytes(keyBytes));
+  // Só neste aparelho e só desbloqueado: a chave não vai para backups do
+  // iCloud nem é migrada para outro celular (iOS; no Android o Keystore já é local).
+  await SecureStore.setItemAsync(vaultKey(key), aesjs.utils.hex.fromBytes(keyBytes), {
+    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+  });
   await AsyncStorage.setItem(key, PREFIX + encrypt(value, keyBytes));
 }
 

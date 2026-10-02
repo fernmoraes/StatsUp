@@ -14,6 +14,7 @@
     },
     "android": {
       "package": "com.fernmoraes.statsup",
+      "allowBackup": false,
       "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",

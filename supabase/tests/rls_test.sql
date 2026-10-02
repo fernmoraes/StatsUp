@@ -146,6 +146,47 @@ begin
       r := r || jsonb_build_object('t', 'Recusa percentil fora de 0–100', 'ok', true, 'd', sqlerrm);
     end;
 
+    -- 4b. Cotas contra abuso (migração 20261003120000_abuse_protection) ------
+    if exists (select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'workouts' and column_name = 'inserted_at') then
+      begin
+        -- B já tem 1 treino nas últimas 24 h ('teste_b'); 99 a mais chegam a 100.
+        -- O primeiro tenta falsificar o horário de inserção (deve ser ignorado).
+        insert into public.workouts (user_id, id, kind, date, inserted_at)
+          values (b, 'cota_0', 'workout', '2026-10-01', '2000-01-01');
+        for i in 1..98 loop
+          insert into public.workouts (user_id, id, kind, date) values (b, 'cota_' || i, 'workout', '2026-10-01');
+        end loop;
+        r := r || jsonb_build_object('t', 'Cota: 100 treinos novos em 24 h são aceitos', 'ok', true, 'd', '');
+      exception when others then
+        r := r || jsonb_build_object('t', 'Cota: 100 treinos novos em 24 h são aceitos', 'ok', false, 'd', sqlerrm);
+      end;
+      begin
+        insert into public.workouts (user_id, id, kind, date) values (b, 'cota_101', 'workout', '2026-10-01');
+        r := r || jsonb_build_object('t', 'Cota: o 101º treino em 24 h é recusado', 'ok', false, 'd', 'inseriu!');
+      exception when others then
+        r := r || jsonb_build_object('t', 'Cota: o 101º treino em 24 h é recusado', 'ok', true, 'd', sqlerrm);
+      end;
+      begin
+        -- Reenvio da sincronização (upsert de linha existente) não conta na cota.
+        insert into public.workouts (user_id, id, kind, date, note) values (b, 'teste_b', 'workout', '2026-10-01', 'reenvio')
+          on conflict (user_id, id) do update set note = excluded.note;
+        r := r || jsonb_build_object('t', 'Cota: reenvio de treino existente continua funcionando', 'ok', true, 'd', '');
+      exception when others then
+        r := r || jsonb_build_object('t', 'Cota: reenvio de treino existente continua funcionando', 'ok', false, 'd', sqlerrm);
+      end;
+      select count(*) into n from public.workouts
+        where user_id = b and inserted_at < now() - interval '1 hour';
+      r := r || jsonb_build_object('t', 'Cota: horário de inserção é definido pelo banco', 'ok', n = 0, 'd', n || ' linhas antigas');
+      begin
+        insert into public.workout_entries (user_id, workout_id, position, exercise_id, percentile, confidence, level)
+          values (b, 'teste_b', 60, 'bench_press', 50, 'high', 'intermediate');
+        r := r || jsonb_build_object('t', 'Cota: o 61º exercício de um treino é recusado', 'ok', false, 'd', 'inseriu!');
+      exception when others then
+        r := r || jsonb_build_object('t', 'Cota: o 61º exercício de um treino é recusado', 'ok', true, 'd', sqlerrm);
+      end;
+    end if;
+
     -- 5. Sem login (anon) ---------------------------------------------------
     execute 'reset role';
     perform set_config('request.jwt.claims', '{"role":"anon"}', true);

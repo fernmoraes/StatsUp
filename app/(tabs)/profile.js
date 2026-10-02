@@ -35,6 +35,7 @@ const SYNC_UI = {
   pending: { icon: 'cloud-upload-outline', color: colors.warn, text: 'Alterações aguardando envio' },
   offline: { icon: 'cloud-offline-outline', color: colors.warn, text: 'Sem internet · salvo no aparelho, envia quando conectar' },
   error: { icon: 'alert-circle-outline', color: colors.bad, text: 'Não foi possível sincronizar' },
+  quota: { icon: 'alert-circle-outline', color: colors.warn, text: 'Limite de treinos atingido: muitos registros em pouco tempo. Tente amanhã.' },
 };
 
 function SyncRow({ state, onRetry }) {

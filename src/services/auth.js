@@ -108,7 +108,53 @@ export async function signUp({ name, email, password }) {
   return { user };
 }
 
+// Espera progressiva contra força bruta: depois de 3 senhas erradas para o
+// mesmo e-mail, cada nova tentativa exige esperar 15 s, 30 s, 1 min… até 5 min.
+// Sobrevive a fechar o app; zera no primeiro login certo. (O Supabase ainda
+// limita tentativas por IP no servidor — esta trava é a camada do app.)
+const K_LOGIN_FAILS = 'statsup:login-fails:v1';
+const FREE_ATTEMPTS = 3;
+const BASE_WAIT_S = 15;
+const MAX_WAIT_S = 300;
+
+async function readFails() {
+  try {
+    return JSON.parse((await AsyncStorage.getItem(K_LOGIN_FAILS)) || '{}');
+  } catch (e) {
+    return {};
+  }
+}
+
+export async function loginLockSeconds(email) {
+  const entry = (await readFails())[normalizeEmail(email)];
+  if (!entry || !entry.until) return 0;
+  return Math.max(0, Math.ceil((entry.until - Date.now()) / 1000));
+}
+
+async function registerFailure(email) {
+  const all = await readFails();
+  const key = normalizeEmail(email);
+  const count = ((all[key] && all[key].count) || 0) + 1;
+  const extra = count - FREE_ATTEMPTS;
+  const wait = extra >= 0 ? Math.min(BASE_WAIT_S * 2 ** extra, MAX_WAIT_S) : 0;
+  all[key] = { count, until: wait ? Date.now() + wait * 1000 : 0 };
+  await AsyncStorage.setItem(K_LOGIN_FAILS, JSON.stringify(all));
+  return wait;
+}
+
+async function clearFailures(email) {
+  const all = await readFails();
+  delete all[normalizeEmail(email)];
+  await AsyncStorage.setItem(K_LOGIN_FAILS, JSON.stringify(all));
+}
+
+const lockedError = (s) =>
+  new AuthError('locked', `Muitas tentativas com senha errada. Espere ${s < 60 ? `${s} s` : `${Math.ceil(s / 60)} min`} e tente de novo.`);
+
 export async function signIn({ email, password, remember }) {
+  const lock = await loginLockSeconds(email);
+  if (lock > 0) throw lockedError(lock);
+
   await setRememberSession(!!remember);
   let res;
   try {
@@ -116,7 +162,15 @@ export async function signIn({ email, password, remember }) {
   } catch (e) {
     throw translate(e);
   }
-  if (res.error) throw translate(res.error);
+  if (res.error) {
+    const err = translate(res.error);
+    if (err.code === 'credentials') {
+      const wait = await registerFailure(email);
+      if (wait > 0) throw lockedError(wait);
+    }
+    throw err;
+  }
+  await clearFailures(email);
   const user = publicUser(res.data.user);
   if (remember) await rememberUser(user);
   else {
