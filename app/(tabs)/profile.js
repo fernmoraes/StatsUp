@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
-import Constants from 'expo-constants';
+import { currentVersionName } from '../../src/services/appVersion';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '../../src/state/AppContext';
@@ -196,7 +196,7 @@ export default function Profile() {
           StatsUp · força em percentil · funciona offline
         </Small>
         <Small style={{ textAlign: 'center', marginTop: 2, color: colors.textFaint }}>
-          Versão {Constants.expoConfig?.version || '—'}
+          Versão {currentVersionName() || '—'}
         </Small>
       </View>
     </Screen>

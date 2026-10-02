@@ -13,11 +13,12 @@ Implementa os documentos de [`docs/conceito_do_app.md`](docs/conceito_do_app.md)
 
 ## Download
 
-**[Baixar StatsUp 1.0.0-beta (APK para Android)](https://github.com/fernmoraes/StatsUp/releases/download/v1.0.0-beta/StatsUp-1.0.0-beta.apk)**
-— ou veja todas as versões em [Releases](https://github.com/fernmoraes/StatsUp/releases).
+**[Baixar o StatsUp para Android (APK)](https://github.com/fernmoraes/StatsUp/releases)** —
+a versão mais recente fica no topo da página de Releases.
 
-Abra o link no celular Android e instale. Se o Android pedir, permita a instalação
-de apps desta fonte.
+Abra o link no celular Android, baixe o `.apk` e instale. Se o Android pedir,
+permita a instalação de apps desta fonte. Versões antigas podem ser desativadas:
+nesse caso o app pede para atualizar (veja [`releases/README.md`](releases/README.md)).
 
 ## Integrantes
 
@@ -44,7 +45,7 @@ app funciona logo após o `npm install`. Se mudar o `.env`, reinicie com
 
 ## Gerar o APK (Android)
 
-Versão atual: **1.0.0-beta**. O build é feito na nuvem da Expo (EAS), sem precisar de
+Versão atual: **1.0.1-beta** (versionCode 2). O build é feito na nuvem da Expo (EAS), sem precisar de
 Android Studio:
 
 ```bash
