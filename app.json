@@ -36,7 +36,8 @@
           "backgroundColor": "#DE1C1D"
         }
       ],
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-secure-store"
     ],
     "extra": {
       "router": {},

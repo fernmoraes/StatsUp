@@ -5,9 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../src/state/AppContext';
 import { Screen, Button, Tiny } from '../src/components/ui';
 import {
-  AuthHeader, Field, PasswordField, FormError, SwitchLink,
+  AuthHeader, Field, PasswordField, PasswordChecklist, FormError, SwitchLink,
 } from '../src/components/authForm';
-import { isValidEmail, MIN_PASSWORD } from '../src/services/auth';
+import {
+  isValidEmail, isStrongPassword, checkPassword, MAX_PASSWORD, MAX_NAME,
+} from '../src/services/auth';
 import { spacing } from '../src/theme';
 
 export default function Register() {
@@ -30,7 +32,7 @@ export default function Register() {
     const next = {};
     if (!name.trim()) next.name = 'Como podemos te chamar?';
     if (!isValidEmail(email)) next.email = 'Digite um e-mail válido.';
-    if (password.length < MIN_PASSWORD) next.password = `Use pelo menos ${MIN_PASSWORD} caracteres.`;
+    if (!isStrongPassword(password)) next.password = 'A senha não atende a todos os requisitos abaixo.';
     setErrors(next);
     setFormError('');
     if (Object.keys(next).length) return;
@@ -64,6 +66,7 @@ export default function Register() {
         value={name}
         onChangeText={(t) => { setName(t); clear('name'); }}
         placeholder="Seu nome"
+        maxLength={MAX_NAME}
         autoCapitalize="words"
         autoComplete="name"
         textContentType="name"
@@ -92,12 +95,14 @@ export default function Register() {
         error={errors.password}
         value={password}
         onChangeText={(t) => { setPassword(t); clear('password'); }}
-        placeholder={`Mínimo de ${MIN_PASSWORD} caracteres`}
+        placeholder="Crie uma senha forte"
+        maxLength={MAX_PASSWORD}
         autoComplete="new-password"
         textContentType="newPassword"
         returnKeyType="go"
         onSubmitEditing={submit}
       />
+      <PasswordChecklist rules={checkPassword(password)} touched={!!errors.password} />
 
       <Button
         title={loading ? 'Criando…' : 'Criar conta'}

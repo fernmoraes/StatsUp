@@ -106,10 +106,11 @@ docs/                       conceito do app e padrões de força
 
 Configuração única, feita no painel do projeto no Supabase:
 
-1. **Banco** — *SQL Editor → New query*: cole e rode
-   [`supabase/migrations/20261001120000_init.sql`](supabase/migrations/20261001120000_init.sql).
-   Cria `profiles`, `workouts` e `workout_entries` com RLS: cada usuário só lê e altera
-   as próprias linhas.
+1. **Banco** — *SQL Editor → New query*: rode, nesta ordem,
+   [`20261001120000_init.sql`](supabase/migrations/20261001120000_init.sql) e
+   [`20261002120000_security_hardening.sql`](supabase/migrations/20261002120000_security_hardening.sql).
+   Criam `profiles`, `workouts` e `workout_entries` com RLS: cada usuário só lê e
+   altera as próprias linhas.
 2. **Página de confirmação** — *Authentication → URL Configuration*:
    - **Site URL**: `https://fernmoraes.github.io/StatsUp/`
    - **Redirect URLs**: adicione `https://fernmoraes.github.io/StatsUp/`
@@ -120,6 +121,20 @@ Configuração única, feita no painel do projeto no Supabase:
 Como os dados são sincronizados: cada mudança é salva no aparelho e enviada para a
 nuvem; ao abrir o app ou entrar, o que estiver pendente é enviado e a nuvem é baixada
 como estado oficial. Cada conta só enxerga os próprios dados.
+
+## Segurança
+
+RLS com políticas por operação em todas as tabelas, validação no banco contra
+dados maliciosos, senha forte no cadastro, só HTTPS, nenhuma chave secreta no app
+e sessão/dados criptografados (AES-256) no celular. Detalhes, passos no painel do
+Supabase e como verificar em [`SECURITY.md`](SECURITY.md).
+
+```bash
+npm run security   # segredos no código/histórico, config e ataques reais à API sem login
+```
+
+O teste entre usuários (um tentando acessar os dados do outro) fica em
+[`supabase/tests/rls_test.sql`](supabase/tests/rls_test.sql) — rode no SQL Editor.
 
 ## Página de confirmação (GitHub Pages)
 

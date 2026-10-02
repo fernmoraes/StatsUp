@@ -2,12 +2,29 @@
 // signUp / signIn / signOut / restoreSession — as telas não mudam.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, setRememberSession, isRememberingSession } from './supabase';
+import * as secureStorage from '../storage/secureStorage';
 
 const K_LAST_EMAIL = 'statsup:last-email:v1'; // preenche o login
 // Última conta logada com "Salvar conta": permite abrir o app sem internet.
+// Fica criptografada (secureStorage).
 const K_CACHED_USER = 'statsup:cached-user:v1';
 
-export const MIN_PASSWORD = 6;
+export const MAX_NAME = 60;
+
+// Política de senha (cadastro). O login aceita senhas antigas, criadas antes
+// desta regra, para não trancar contas existentes.
+export const MIN_PASSWORD = 8;
+export const MAX_PASSWORD = 30;
+export const PASSWORD_RULES = [
+  { key: 'length', label: `De ${MIN_PASSWORD} a ${MAX_PASSWORD} caracteres`, test: (p) => p.length >= MIN_PASSWORD && p.length <= MAX_PASSWORD },
+  { key: 'lower', label: 'Uma letra minúscula', test: (p) => /[a-z]/.test(p) },
+  { key: 'upper', label: 'Uma letra maiúscula', test: (p) => /[A-Z]/.test(p) },
+  { key: 'digit', label: 'Um número', test: (p) => /[0-9]/.test(p) },
+  // Mesma lista de símbolos que o Supabase Auth aceita na exigência de senha.
+  { key: 'symbol', label: 'Um caractere especial (ex.: ! @ # $ %)', test: (p) => /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(p) },
+];
+export const checkPassword = (p) => PASSWORD_RULES.map((r) => ({ ...r, ok: r.test(p) }));
+export const isStrongPassword = (p) => PASSWORD_RULES.every((r) => r.test(p));
 
 export class AuthError extends Error {
   constructor(code, message) {
@@ -42,7 +59,7 @@ function translate(error) {
   if (code === 'user_already_exists' || /already registered/i.test(msg))
     return new AuthError('email', 'Já existe uma conta com esse e-mail. Entre com ela.');
   if (code === 'weak_password' || /password/i.test(msg))
-    return new AuthError('password', `Senha fraca. Use pelo menos ${MIN_PASSWORD} caracteres.`);
+    return new AuthError('password', 'Senha fraca. Siga todos os requisitos abaixo do campo.');
   if (code === 'email_address_invalid' || /email.*invalid/i.test(msg))
     return new AuthError('email', 'E-mail inválido.');
   if (code === 'over_email_send_rate_limit' || code === 'over_request_rate_limit' || /rate limit/i.test(msg))
@@ -51,10 +68,8 @@ function translate(error) {
 }
 
 async function rememberUser(user) {
-  await AsyncStorage.multiSet([
-    [K_LAST_EMAIL, user.email],
-    [K_CACHED_USER, JSON.stringify(user)],
-  ]);
+  await AsyncStorage.setItem(K_LAST_EMAIL, user.email);
+  await secureStorage.setItem(K_CACHED_USER, JSON.stringify(user));
 }
 
 // Retorna { user } ou { needsConfirmation: true } quando o projeto exige
@@ -62,8 +77,9 @@ async function rememberUser(user) {
 export async function signUp({ name, email, password }) {
   const cleanName = name.trim();
   if (!cleanName) throw new AuthError('name', 'Informe seu nome.');
+  if (cleanName.length > MAX_NAME) throw new AuthError('name', `Use no máximo ${MAX_NAME} caracteres.`);
   if (!isValidEmail(email)) throw new AuthError('email', 'E-mail inválido.');
-  if (password.length < MIN_PASSWORD) throw new AuthError('password', `A senha precisa de pelo menos ${MIN_PASSWORD} caracteres.`);
+  if (!isStrongPassword(password)) throw new AuthError('password', 'A senha não atende a todos os requisitos.');
 
   await setRememberSession(true); // cadastro já entra com a conta salva
   let res;
@@ -105,7 +121,7 @@ export async function signIn({ email, password, remember }) {
   if (remember) await rememberUser(user);
   else {
     await AsyncStorage.setItem(K_LAST_EMAIL, user.email);
-    await AsyncStorage.removeItem(K_CACHED_USER);
+    await secureStorage.removeItem(K_CACHED_USER);
   }
   return user;
 }
@@ -117,7 +133,7 @@ export async function signOut() {
   } catch (e) {
     // sem rede: a sessão local é apagada mesmo assim
   }
-  await AsyncStorage.removeItem(K_CACHED_USER);
+  await secureStorage.removeItem(K_CACHED_USER);
 }
 
 // Ao abrir o app. Com "Salvar conta", retoma a sessão; sem internet, usa a
@@ -138,7 +154,7 @@ export async function restoreSession() {
   }
   // Falha de rede: abre offline com a última conta salva.
   try {
-    const raw = await AsyncStorage.getItem(K_CACHED_USER);
+    const raw = await secureStorage.getItem(K_CACHED_USER);
     return raw ? JSON.parse(raw) : null;
   } catch (e) {
     return null;

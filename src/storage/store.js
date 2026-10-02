@@ -1,6 +1,8 @@
 // Cache local por conta (AsyncStorage). A nuvem (Supabase) é a fonte oficial;
 // este cache deixa o app abrir e registrar treinos sem internet.
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// Perfil e treinos são dados pessoais (nascimento, peso…): ficam criptografados.
+import * as secureStorage from './secureStorage';
 
 const kProfile = (userId) => `statsup:${userId}:profile:v1`;
 const kLogs = (userId) => `statsup:${userId}:logs:v1`;
@@ -12,7 +14,7 @@ const kDirty = (userId) => `statsup:${userId}:dirty:v1`;
 
 const readJSON = async (key, fallback) => {
   try {
-    const raw = await AsyncStorage.getItem(key);
+    const raw = await secureStorage.getItem(key);
     return raw ? JSON.parse(raw) : fallback;
   } catch (e) {
     return fallback;
@@ -23,11 +25,11 @@ export const loadProfile = (userId) => readJSON(kProfile(userId), null);
 export const loadLogs = (userId) => readJSON(kLogs(userId), []);
 
 export async function saveProfile(userId, profile) {
-  await AsyncStorage.setItem(kProfile(userId), JSON.stringify(profile));
+  await secureStorage.setItem(kProfile(userId), JSON.stringify(profile));
 }
 
 export async function saveLogs(userId, logs) {
-  await AsyncStorage.setItem(kLogs(userId), JSON.stringify(logs));
+  await secureStorage.setItem(kLogs(userId), JSON.stringify(logs));
 }
 
 const kTutorial = (userId) => `statsup:${userId}:tutorial:v1`;

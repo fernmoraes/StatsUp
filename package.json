@@ -6,7 +6,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "security": "node scripts/security-check.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/barlow": "^0.4.1",
@@ -14,6 +15,7 @@
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.117.2",
+    "aes-js": "^3.1.2",
     "babel-preset-expo": "~57.0.0",
     "expo": "~57.0.26",
     "expo-constants": "~57.0.20",
@@ -24,6 +26,7 @@
     "expo-linking": "~57.0.11",
     "expo-navigation-bar": "~57.0.3",
     "expo-router": "~57.0.24",
+    "expo-secure-store": "~57.0.4",
     "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",

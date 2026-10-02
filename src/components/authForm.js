@@ -75,6 +75,23 @@ export function Checkbox({ checked, onChange, label, hint }) {
   );
 }
 
+// Requisitos da senha, atualizados enquanto a pessoa digita (sempre ícone + texto).
+export function PasswordChecklist({ rules, touched }) {
+  return (
+    <View style={styles.checklist} accessibilityLabel="Requisitos da senha">
+      {rules.map((r) => {
+        const color = r.ok ? colors.good : touched ? colors.bad : colors.textFaint;
+        return (
+          <Row key={r.key} style={{ marginBottom: 4 }}>
+            <Ionicons name={r.ok ? 'checkmark-circle' : 'ellipse-outline'} size={15} color={color} style={{ marginRight: 6 }} />
+            <Text style={[styles.ruleText, r.ok && { color: colors.text }]}>{r.label}</Text>
+          </Row>
+        );
+      })}
+    </View>
+  );
+}
+
 export function FormError({ message }) {
   if (!message) return null;
   return (
@@ -106,6 +123,8 @@ export function SwitchLink({ question, action, onPress }) {
 }
 
 const styles = StyleSheet.create({
+  checklist: { marginTop: -spacing(1), marginBottom: spacing(2), paddingHorizontal: spacing(0.5) },
+  ruleText: { color: colors.textDim, fontFamily: fonts.medium, fontSize: 13 },
   inputError: { borderColor: colors.bad },
   fieldError: { color: colors.bad, fontFamily: fonts.medium, fontSize: 13, marginTop: 6 },
   eye: {

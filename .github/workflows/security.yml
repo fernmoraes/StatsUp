@@ -1,0 +1,23 @@
+# Testes de segurança a cada push/PR: segredos no código e no histórico,
+# .env só com valores públicos/HTTPS e ataques reais à API sem login (RLS).
+name: Testes de segurança
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # histórico completo: procura segredos em commits antigos também
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/security-check.mjs
