@@ -1,5 +1,5 @@
 // Atualização obrigatória. Ao abrir, o app lê `site/version.json` (GitHub Pages):
-//   { "minVersionCode": 2, "latestVersionCode": 2, "latestVersion": "1.0.1-beta",
+//   { "minVersionCode": 3, "latestVersionCode": 3, "latestVersion": "2.0.0-beta",
 //     "downloadUrl": "https://github.com/fernmoraes/StatsUp/releases" }
 // - versão abaixo de minVersionCode → bloqueada (tela "Atualize o StatsUp");
 // - abaixo de latestVersionCode → aviso de que existe versão nova (dispensável).

@@ -47,7 +47,7 @@ app funciona logo após o `npm install`. Se mudar o `.env`, reinicie com
 
 ## Gerar o APK (Android)
 
-Versão atual: **1.0.1-beta** (versionCode 2). O build é feito na nuvem da Expo (EAS),
+Versão atual: **2.0.0-beta** (versionCode 3). O build é feito na nuvem da Expo (EAS),
 sem precisar de Android Studio:
 
 ```bash

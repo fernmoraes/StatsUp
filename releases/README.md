@@ -28,4 +28,5 @@ download não terá para onde levar.
 | Versão | versionCode | Verificação de versão |
 |---|---|---|
 | 1.0.0-beta | 1 | não tem (não pode ser bloqueada) |
-| 1.0.1-beta | 2 | tem |
+| 1.0.1-beta | 2 | não publicada (build cancelado) |
+| 2.0.0-beta | 3 | tem |

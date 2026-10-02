@@ -3,19 +3,19 @@
     "name": "StatsUp",
     "slug": "StatsUp",
     "scheme": "statsup",
-    "version": "1.0.1-beta",
+    "version": "2.0.0-beta",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0F0D0D",
     "ios": {
-      "buildNumber": "2",
+      "buildNumber": "3",
       "supportsTablet": true
     },
     "android": {
       "package": "com.fernmoraes.statsup",
       "allowBackup": false,
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#DE1C1D"
