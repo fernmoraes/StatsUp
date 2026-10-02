@@ -20,6 +20,7 @@ import {
   purgeUserData,
 } from '../storage/store';
 import * as auth from '../services/auth';
+import { supabase } from '../services/supabase';
 import { pushAll, pullAll } from '../services/sync';
 import { getExercise } from '../data/exercises';
 import { computeEntry } from '../engine/calc';
@@ -96,10 +97,39 @@ export function AppProvider({ children }) {
   // Tutorial de uso: aparece uma vez por conta (depois das perguntas iniciais)
   // e pode ser reaberto pelo Perfil.
   const [tutorialVisible, setTutorialVisible] = useState(false);
+  // Por que a sessão terminou sozinha (aviso no login): 'gone' = conta excluída
+  // ou sessão revogada; 'resume' = perguntas iniciais ficaram pela metade.
+  const [authNotice, setAuthNotice] = useState(null);
 
   const userRef = useRef(null);
+  const leaving = useRef(false); // saída feita pelo próprio app (não é "conta sumiu")
   const writeSeq = useRef(0); // muda a cada escrita local
   const syncChain = useRef(Promise.resolve()); // uma sincronização por vez
+
+  // Encerra a sessão neste aparelho e limpa o estado. O e-mail da última conta
+  // continua salvo para preencher o login.
+  const endSession = useCallback(async (notice = null) => {
+    leaving.current = true;
+    userRef.current = null;
+    try {
+      await auth.signOut();
+    } finally {
+      leaving.current = false;
+    }
+    setAuthNotice(notice);
+    setSyncState('idle');
+    setTutorialVisible(false);
+    setUser(null);
+    setProfile(null);
+    setLogs([]);
+  }, []);
+
+  // Conta excluída (no app, no painel ou em outro aparelho) → volta pro login.
+  const checkAccount = useCallback(async () => {
+    const status = await auth.verifyAccount();
+    if (status === 'gone' && userRef.current) await endSession('gone');
+    return status;
+  }, [endSession]);
 
   // Envia o que está pendente e (pull=true) baixa o estado oficial da nuvem.
   const doSync = useCallback(async (uid, { pull = true } = {}) => {
@@ -127,8 +157,10 @@ export function AppProvider({ children }) {
       // Cota contra abuso do banco (migração abuse_protection) estourada.
       const quota = /^quota_/.test((e && e.hint) || '');
       if (userRef.current?.id === uid) setSyncState(quota ? 'quota' : offline ? 'offline' : 'error');
+      // Erro que não é rede nem cota: pode ser a conta que deixou de existir.
+      if (!offline && !quota && userRef.current?.id === uid) await checkAccount();
     }
-  }, []);
+  }, [checkAccount]);
 
   const runSync = useCallback((uid, opts) => {
     syncChain.current = syncChain.current.then(() => doSync(uid, opts)).catch(() => {});
@@ -137,8 +169,9 @@ export function AppProvider({ children }) {
 
   // Abre a conta: dados do aparelho na hora; a nuvem atualiza em seguida.
   // Num aparelho novo (sem cache) espera a nuvem para não mandar a pessoa
-  // refazer as perguntas iniciais à toa.
+  // refazer as perguntas iniciais à toa. Retorna o perfil (null = sem perfil).
   const loadUserData = useCallback(async (u) => {
+    setAuthNotice(null);
     userRef.current = u;
     const [p, l] = await Promise.all([loadProfile(u.id), loadLogs(u.id)]);
     const migrated = migrateLogs(l || []);
@@ -151,17 +184,33 @@ export function AppProvider({ children }) {
     setTutorialVisible(!(u.tutorial_done || (await isTutorialDone(u.id))));
     setUser(u);
     const sync = runSync(u.id);
-    if (!p) await sync;
+    if (p) return p;
+    await sync;
+    return loadProfile(u.id);
   }, [runSync]);
 
   // Ao abrir: retoma a conta salva ("Salvar conta"); sem ela, vai pro login.
+  // Conta sem perfil = app fechado no meio das perguntas iniciais: volta pro
+  // login (e-mail preenchido) e as perguntas recomeçam depois de entrar.
   useEffect(() => {
     (async () => {
-      const u = await auth.restoreSession();
-      if (u) await loadUserData(u);
+      const u = await auth.restoreSession({ onGone: () => setAuthNotice('gone') });
+      if (u) {
+        const p = await loadUserData(u);
+        if (!p && userRef.current?.id === u.id) await endSession('resume');
+      }
       setReady(true);
     })();
-  }, [loadUserData]);
+  }, [loadUserData, endSession]);
+
+  // A sessão caiu fora do app (ex.: renovação recusada porque a conta foi
+  // excluída enquanto o app estava em segundo plano) → volta pro login.
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT' && userRef.current && !leaving.current) endSession('gone');
+    });
+    return () => data.subscription.unsubscribe();
+  }, [endSession]);
 
   // Retorna { user } ou { needsConfirmation } (projeto exige confirmar e-mail).
   const signUp = useCallback(async (data) => {
@@ -177,9 +226,20 @@ export function AppProvider({ children }) {
   }, [loadUserData]);
 
   // Sai da conta: os dados continuam salvos no aparelho para o próximo login.
-  const signOut = useCallback(async () => {
-    await auth.signOut();
-    userRef.current = null;
+  const signOut = useCallback(() => endSession(null), [endSession]);
+
+  // Exclui a conta (nuvem + aparelho). Lança AuthError (ex.: senha incorreta).
+  const deleteAccount = useCallback(async (password) => {
+    const uid = userRef.current && userRef.current.id;
+    leaving.current = true;
+    try {
+      await auth.deleteAccount(password);
+      userRef.current = null;
+    } finally {
+      leaving.current = false;
+    }
+    if (uid) await purgeUserData(uid);
+    setAuthNotice(null); // o login mostra o aviso de "conta excluída"
     setSyncState('idle');
     setTutorialVisible(false);
     setUser(null);
@@ -188,19 +248,6 @@ export function AppProvider({ children }) {
   }, []);
 
   // Escritas: salva no aparelho na hora, marca pendente e envia para a nuvem.
-  // Exclui a conta (nuvem + aparelho). Lança AuthError (ex.: senha incorreta).
-  const deleteAccount = useCallback(async (password) => {
-    const uid = userRef.current && userRef.current.id;
-    await auth.deleteAccount(password);
-    if (uid) await purgeUserData(uid);
-    userRef.current = null;
-    setSyncState('idle');
-    setTutorialVisible(false);
-    setUser(null);
-    setProfile(null);
-    setLogs([]);
-  }, []);
-
   const persistProfile = useCallback(async (p) => {
     writeSeq.current++;
     setProfile(p);
@@ -229,8 +276,13 @@ export function AppProvider({ children }) {
 
   // Conclui onboarding: cria profile + as marcas iniciais (baseline). A data só
   // serve para ordenar: um treino registrado depois atualiza o radar.
+  // Só salva com a conta confirmada no servidor: retorna null se a conta não
+  // existe mais ('gone', já volta pro login) ou se está sem internet ('offline').
   const completeOnboarding = useCallback(
     async (profileData, anchorInputs) => {
+      if (!user || userRef.current?.id !== user.id) return { error: 'gone' };
+      const status = await checkAccount();
+      if (status !== 'ok') return { error: status };
       const p = {
         id: user.id,
         name: user.name,
@@ -247,9 +299,9 @@ export function AppProvider({ children }) {
           : [];
       await persistProfile(p);
       await persistLogs(firstLog);
-      return p;
+      return { profile: p };
     },
-    [user, persistProfile, persistLogs]
+    [user, checkAccount, persistProfile, persistLogs]
   );
 
   // Registra um treino. entriesInput: [{exercise_id, weight, reps}].
@@ -300,6 +352,8 @@ export function AppProvider({ children }) {
     signIn,
     signOut,
     deleteAccount,
+    authNotice,
+    checkAccount,
     syncState,
     syncNow,
     tutorialVisible,

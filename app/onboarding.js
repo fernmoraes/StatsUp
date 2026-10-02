@@ -1,18 +1,19 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Animated, Easing, ScrollView, Keyboard,
+  View, Text, StyleSheet, Pressable, Animated, Easing, ScrollView, Keyboard, AppState,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp, makeEntry, todayISO } from '../src/state/AppContext';
 import {
   Screen, Display, H1, H2, H3, Body, Small, Tiny, Label,
-  Button, Card, GradientCard, Row, Badge, BrandLogo, Input,
+  Button, Card, GradientCard, Row, Badge, BrandLogo, Input, Loader,
 } from '../src/components/ui';
 import RadarChart from '../src/components/RadarChart';
 import ProgressRing from '../src/components/ProgressRing';
 import ExerciseImage from '../src/components/ExerciseImage';
+import { useDialog } from '../src/components/dialog';
 import {
   colors, spacing, radius, font, fonts, groupColor, groupGradient, gradients, hexA,
 } from '../src/theme';
@@ -36,9 +37,36 @@ function Field({ label, error, children }) {
 
 const fieldErrorStyle = { color: colors.bad, fontFamily: fonts.medium, fontSize: 13, marginTop: 6 };
 
+// Guarda: as perguntas só abrem com uma conta logada e que ainda existe.
+// Sem conta (nunca entrou, excluída, sessão caiu) → login.
 export default function Onboarding() {
+  const { ready, user, profile, checkAccount } = useApp();
+  // Quem chegou sem perfil fica até ver o radar pronto (passo final), mesmo
+  // depois de o perfil ser criado; quem já tem perfil vai direto pro app.
+  const started = useRef(false);
+  if (ready && user && !profile) started.current = true;
+
+  // Confere a conta no servidor ao abrir e ao voltar do segundo plano.
+  useEffect(() => {
+    if (!ready || !user) return undefined;
+    checkAccount();
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') checkAccount();
+    });
+    return () => sub.remove();
+  }, [ready, user, checkAccount]);
+
+  if (!ready) return <Loader />;
+  if (!user) return <Redirect href="/login" />;
+  if (profile && !started.current) return <Redirect href="/(tabs)" />;
+  return <OnboardingFlow />;
+}
+
+function OnboardingFlow() {
   const router = useRouter();
   const { completeOnboarding } = useApp();
+  const { alert } = useDialog();
+  const [saving, setSaving] = useState(false);
 
   const [step, setStep] = useState(0);
   const [anchorIdx, setAnchorIdx] = useState(0);
@@ -109,7 +137,20 @@ export default function Onboarding() {
   const setAnchor = (group, patch) => setAnchors((p) => ({ ...p, [group]: { ...p[group], ...patch } }));
 
   const handleGenerate = async () => {
-    await completeOnboarding(profileDraft, anchorInputs);
+    if (saving) return;
+    setSaving(true);
+    const res = await completeOnboarding(profileDraft, anchorInputs);
+    // 'gone': a conta não existe mais — a guarda acima já leva pro login.
+    if (res.error === 'gone') return;
+    setSaving(false);
+    if (res.error === 'offline') {
+      alert({
+        title: 'Sem conexão',
+        message: 'Conecte à internet para salvar seu perfil. Suas respostas continuam aqui.',
+        icon: 'cloud-offline-outline',
+      });
+      return;
+    }
     setStep(3);
   };
 
@@ -352,7 +393,8 @@ export default function Onboarding() {
             <Row>
               <Button title="Voltar" variant="ghost" onPress={onBack} style={{ flex: 1, marginRight: spacing(1) }} />
               <Button
-                title={isLast ? (anchorInputs.length ? 'Gerar radar' : 'Pular tudo') : 'Próximo'}
+                title={isLast ? (saving ? 'Salvando…' : anchorInputs.length ? 'Gerar radar' : 'Pular tudo') : 'Próximo'}
+                disabled={saving}
                 icon={<Ionicons name={isLast ? 'pulse' : 'arrow-forward'} size={16} color="#fff" />}
                 onPress={onNext}
                 style={{ flex: 1.5 }}

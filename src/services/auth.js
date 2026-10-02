@@ -232,9 +232,22 @@ export async function signOut() {
   await secureStorage.removeItem(K_CACHED_USER);
 }
 
+// Confere no servidor se a conta da sessão ainda existe (getUser manda o JWT).
+// 'ok' | 'gone' (conta excluída / sessão revogada) | 'offline' (sem como conferir).
+export async function verifyAccount() {
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error && data && data.user) return 'ok';
+    return error && isNetworkError(error) ? 'offline' : 'gone';
+  } catch (e) {
+    return isNetworkError(e) ? 'offline' : 'gone';
+  }
+}
+
 // Ao abrir o app. Com "Salvar conta", retoma a sessão; sem internet, usa a
 // última conta salva para abrir com os dados do aparelho.
-export async function restoreSession() {
+// onGone: chamado quando o servidor diz que a conta/sessão não vale mais.
+export async function restoreSession({ onGone } = {}) {
   if (!(await isRememberingSession())) return null;
   try {
     const { data, error } = await supabase.auth.getSession();
@@ -245,6 +258,7 @@ export async function restoreSession() {
       const check = await supabase.auth.getUser();
       if (check.error && !isNetworkError(check.error)) {
         await signOut();
+        if (onGone) onGone();
         return null;
       }
       const user = publicUser((check.data && check.data.user) || data.session.user);

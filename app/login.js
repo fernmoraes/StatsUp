@@ -12,7 +12,7 @@ import { getLastEmail, isValidEmail } from '../src/services/auth';
 export default function Login() {
   const router = useRouter();
   const { notice } = useLocalSearchParams();
-  const { signIn } = useApp();
+  const { signIn, authNotice } = useApp();
   const passwordRef = useRef(null);
 
   const [email, setEmail] = useState('');
@@ -55,6 +55,12 @@ export default function Login() {
       ) : null}
       {notice === 'deleted' && !formError ? (
         <FormNotice message="Sua conta e todos os seus dados foram excluídos." />
+      ) : null}
+      {authNotice === 'gone' && notice !== 'deleted' && !formError ? (
+        <FormNotice message="Essa conta não existe mais ou a sessão expirou. Entre de novo ou crie uma conta." />
+      ) : null}
+      {authNotice === 'resume' && !formError ? (
+        <FormNotice message="Entre de novo para terminar de configurar seu perfil." />
       ) : null}
       <FormError message={formError} />
 
