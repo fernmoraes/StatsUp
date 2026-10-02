@@ -1,50 +1,76 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
 <!--
   E-mail "Confirm signup" do StatsUp.
   Onde usar: Supabase → Authentication → Emails → Confirm signup
     Subject: Confirme seu e-mail no StatsUp
     Message body: cole este arquivo inteiro.
   {{ .ConfirmationURL }} é preenchido pelo Supabase.
+  Visual claro de propósito: Gmail/Outlook no modo escuro escurecem sozinhos um
+  e-mail claro sem estragar; um e-mail escuro eles "clareiam" e fica acinzentado.
   Tabelas + estilos inline porque é o que funciona em Gmail/Outlook.
 -->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0F0D0D;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>Confirme seu e-mail no StatsUp</title>
+</head>
+<body style="margin:0;padding:0;background:#F3EFEE;">
+<!-- Texto da prévia na caixa de entrada (não aparece no corpo) -->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">Falta só um passo para ativar sua conta no StatsUp.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#F3EFEE" style="background:#F3EFEE;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;">
   <tr>
     <td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:440px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:460px;background:#FFFFFF;border-radius:16px;overflow:hidden;border:1px solid #E6DEDC;">
+        <!-- Faixa da marca -->
         <tr>
-          <td style="padding-bottom:24px;">
+          <td bgcolor="#DE1C1D" style="background:#DE1C1D;padding:18px 24px;">
             <table role="presentation" cellpadding="0" cellspacing="0">
               <tr>
-                <td style="background:#DE1C1D;border-radius:12px;width:44px;height:44px;text-align:center;vertical-align:middle;">
-                  <img src="https://fernmoraes.github.io/StatsUp/assets/logo-mark.png" width="30" alt="StatsUp" style="display:inline-block;border:0;" />
+                <td style="vertical-align:middle;padding-right:10px;">
+                  <img src="https://fernmoraes.github.io/StatsUp/assets/logo-mark.png" width="32" height="26" alt="" style="display:block;border:0;width:32px;height:26px;" />
                 </td>
-                <td style="padding-left:12px;color:#F8F4F3;font-size:20px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;">StatsUp</td>
+                <td style="vertical-align:middle;color:#FFFFFF;font-size:20px;font-weight:bold;letter-spacing:1px;">STATSUP</td>
               </tr>
             </table>
           </td>
         </tr>
+        <!-- Conteúdo -->
         <tr>
-          <td style="background:#1B1717;border:1px solid #2A2424;border-radius:16px;padding:28px 24px;">
-            <p style="margin:0 0 6px;color:#726866;font-size:12px;letter-spacing:2px;text-transform:uppercase;">Falta só um passo</p>
-            <h1 style="margin:0 0 14px;color:#F8F4F3;font-size:28px;line-height:1.1;text-transform:uppercase;">Confirme seu e-mail</h1>
-            <p style="margin:0 0 24px;color:#B5ABA9;font-size:16px;line-height:1.5;">
-              Toque no botão abaixo para ativar sua conta. Depois é só voltar ao app e entrar com seu e-mail e senha.
+          <td style="padding:32px 24px 28px;">
+            <p style="margin:0 0 8px;color:#DE1C1D;font-size:12px;font-weight:bold;letter-spacing:2px;">FALTA SÓ UM PASSO</p>
+            <h1 style="margin:0 0 14px;color:#1B1717;font-size:26px;line-height:1.2;">Confirme seu e-mail</h1>
+            <p style="margin:0 0 24px;color:#4A4241;font-size:16px;line-height:1.5;">
+              Olá! Recebemos o seu cadastro no StatsUp. Toque no botão abaixo para ativar sua conta e depois é só voltar ao app e entrar com seu e-mail e senha.
             </p>
             <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
               <tr>
-                <td align="center" style="background:#DE1C1D;border-radius:12px;">
-                  <a href="{{ .ConfirmationURL }}" style="display:block;padding:16px 24px;color:#FFFFFF;font-size:16px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;text-decoration:none;">Confirmar e-mail</a>
+                <td align="center" bgcolor="#DE1C1D" style="background:#DE1C1D;border-radius:12px;">
+                  <a href="{{ .ConfirmationURL }}" style="display:block;padding:16px 24px;color:#FFFFFF;font-size:16px;font-weight:bold;text-decoration:none;">Confirmar meu e-mail</a>
                 </td>
               </tr>
             </table>
-            <p style="margin:24px 0 0;color:#726866;font-size:13px;line-height:1.5;">
-              O link expira em pouco tempo, então confirme agora. Se você não criou uma conta no StatsUp, ignore este e-mail.
+            <p style="margin:24px 0 6px;color:#6B6260;font-size:13px;line-height:1.5;">
+              Se o botão não funcionar, copie e cole este link no navegador:
+            </p>
+            <p style="margin:0 0 20px;font-size:12px;line-height:1.5;word-break:break-all;">
+              <a href="{{ .ConfirmationURL }}" style="color:#B5161A;">{{ .ConfirmationURL }}</a>
+            </p>
+            <p style="margin:0;color:#6B6260;font-size:13px;line-height:1.5;">
+              O link vale por pouco tempo. Se você não criou uma conta no StatsUp, pode ignorar este e-mail com segurança.
             </p>
           </td>
         </tr>
         <tr>
-          <td style="padding-top:20px;color:#726866;font-size:12px;text-align:center;">StatsUp · sua força em percentil</td>
+          <td style="padding:16px 24px;border-top:1px solid #EFE8E6;color:#8A807E;font-size:12px;text-align:center;">
+            StatsUp · sua força em percentil
+          </td>
         </tr>
       </table>
     </td>
   </tr>
 </table>
+</body>
+</html>
