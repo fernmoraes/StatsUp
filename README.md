@@ -66,10 +66,13 @@ Store). Como publicar uma versão nova e desativar as antigas:
 - **Conta** com nome, e-mail e senha forte (Supabase Auth), opção **Salvar conta**,
   **Sair da conta** e **Excluir conta** (apaga a conta e todos os dados).
 - **Perguntas iniciais** no primeiro acesso: dados do perfil + suas **marcas** (o máximo
-  que aguenta em um exercício de cada grupo). As marcas montam o primeiro radar e não
-  contam como treino.
-- **Radar de força** com score geral, elo fraco, próxima meta e insights automáticos;
-  toque em Perna para ver quadríceps, posterior, glúteos e panturrilha.
+  que aguenta em um exercício de cada grupo). Uma tela explica em 4 passos como
+  preencher, com exemplo (e pode ser reaberta em "Como preencher?"). As marcas montam o
+  primeiro radar e não contam como treino.
+- **Radar de força** com score geral, elo fraco, próxima meta e insights automáticos.
+  Toque em qualquer grupo do radar para ver o detalhe: nível do grupo, seus exercícios
+  (com o mais fraco destacado) e os que faltam; na Perna, os subgrupos (quadríceps,
+  posterior, glúteos e panturrilha).
 - **Registro de treino** em lista ou carrossel, com data (dá para marcar um treino
   esquecido de outro dia) e feedback de recorde/subida de nível.
 - **Histórico** com calendário, dias desde o último treino de cada grupo, evolução do
@@ -93,7 +96,7 @@ app/                          telas (expo-router)
   onboarding.js               perguntas iniciais + revelação do radar
   (tabs)/                     Radar · Treinar · Histórico · Perfil
   exercise/[id].js            detalhe e padrões de um exercício
-  subradar/[group].js         detalhe por subgrupo (perna)
+  subradar/[group].js         detalhe de cada eixo do radar (perna: subgrupos)
 src/
   components/                 UI (ui.js), radar, calendário, diálogos, tutorial, abertura
   data/                       exercícios + standards embarcados, níveis, objetivos
