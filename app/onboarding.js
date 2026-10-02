@@ -42,6 +42,8 @@ export default function Onboarding() {
 
   const [step, setStep] = useState(0);
   const [anchorIdx, setAnchorIdx] = useState(0);
+  // Explicação antes das marcas (amigos se perdiam aqui). Reabre por "Como preencher?".
+  const [showAnchorIntro, setShowAnchorIntro] = useState(true);
   const [sex, setSex] = useState('male');
   const [day, setDay] = useState('');
   const [month, setMonth] = useState('');
@@ -246,7 +248,15 @@ export default function Onboarding() {
       )}
 
       {/* ---------------------------------------------------------- passo 2 */}
-      {step === 2 && (() => {
+      {step === 2 && showAnchorIntro && (
+        <AnchorIntro
+          total={ONBOARDING_ANCHORS.length}
+          onStart={() => setShowAnchorIntro(false)}
+          onBack={() => setStep(1)}
+        />
+      )}
+
+      {step === 2 && !showAnchorIntro && (() => {
         const a = ONBOARDING_ANCHORS[anchorIdx];
         const group = a.group;
         const state = anchors[group];
@@ -278,7 +288,12 @@ export default function Onboarding() {
             {/* Deixa claro que não é o treino do dia (antes virava um treino no calendário). */}
             <Row style={styles.note}>
               <Ionicons name="information-circle-outline" size={16} color={colors.textDim} style={{ marginRight: 6 }} />
-              <Small style={{ flex: 1 }}>Não precisa ter treinado hoje: é a sua marca, não um treino. Ela não entra no calendário.</Small>
+              <View style={{ flex: 1 }}>
+                <Small>Não precisa ter treinado hoje: é a sua marca, não um treino. Ela não entra no calendário.</Small>
+                <Pressable onPress={() => setShowAnchorIntro(true)} hitSlop={8} accessibilityRole="button">
+                  <Text style={styles.helpLink}>Como preencher?</Text>
+                </Pressable>
+              </View>
             </Row>
 
             <GradientCard gradient={groupGradient[group]} glow={groupColor[group]} style={{ alignItems: 'center', paddingVertical: spacing(2), opacity: state.skipped ? 0.5 : 1 }}>
@@ -352,6 +367,86 @@ export default function Onboarding() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Explicação das marcas: o que preencher, por quê e o que acontece depois.
+const INTRO_STEPS = [
+  {
+    title: 'Escolha um exercício por grupo',
+    text: 'Em cada tela, toque em um exercício que você já faz. Não faz nenhum daquele grupo? Toque em "Não faço isso" e siga para o próximo.',
+  },
+  {
+    title: 'Coloque sua melhor série recente',
+    text: 'Carga máx.: o peso que você levantou. Reps: quantas repetições fez com esse peso. Em exercícios sem peso, como a barra fixa, coloque só as repetições.',
+  },
+  {
+    title: 'É só um ponto de partida',
+    text: 'Usamos esses números para calcular a sua média. Não precisa ser exato, não é o treino de hoje e não entra no calendário.',
+  },
+  {
+    title: 'O radar evolui com você',
+    text: 'Cada treino que você registrar depois atualiza o gráfico com os números novos. Quanto mais você registra, mais preciso ele fica.',
+  },
+];
+
+function AnchorIntro({ total, onStart, onBack }) {
+  return (
+    <View>
+      <Label>Antes de começar</Label>
+      <H1 style={{ marginTop: 4 }}>Suas marcas</H1>
+      <Body style={{ color: colors.textDim, marginTop: spacing(1), marginBottom: spacing(2) }}>
+        Para montar o seu radar, precisamos saber quanto você aguenta hoje em cada grupo muscular. São {total} telas rápidas, uma por grupo.
+      </Body>
+
+      {INTRO_STEPS.map((s, i) => (
+        <Row key={s.title} style={{ alignItems: 'flex-start', marginBottom: spacing(1.75) }}>
+          <View style={styles.stepNum}>
+            <Text style={styles.stepNumText}>{i + 1}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <H3>{s.title}</H3>
+            <Small style={{ marginTop: 2 }}>{s.text}</Small>
+          </View>
+        </Row>
+      ))}
+
+      {/* Exemplo de como preencher */}
+      <Card style={{ marginTop: spacing(0.5) }}>
+        <Label style={{ marginBottom: spacing(1) }}>Exemplo</Label>
+        <Row style={{ marginBottom: spacing(1.25) }}>
+          <ExerciseImage exerciseId="bench_press" size={44} radius={11} style={{ marginRight: spacing(1.25) }} />
+          <View style={{ flex: 1 }}>
+            <H3>Supino Reto</H3>
+            <Small>Peito</Small>
+          </View>
+        </Row>
+        <Row style={{ gap: spacing(1) }}>
+          <View style={styles.mockField}>
+            <Text style={styles.mockLabel}>CARGA MÁX. (KG)</Text>
+            <Text style={styles.mockValue}>60</Text>
+          </View>
+          <View style={styles.mockField}>
+            <Text style={styles.mockLabel}>REPS COM ESSA CARGA</Text>
+            <Text style={styles.mockValue}>8</Text>
+          </View>
+        </Row>
+        <Small style={{ marginTop: spacing(1.25) }}>
+          Na última vez você fez 8 repetições com 60 kg no supino? É isso que você coloca.
+        </Small>
+      </Card>
+
+      <Row style={{ marginTop: spacing(1.5) }}>
+        <Button title="Voltar" variant="ghost" onPress={onBack} style={{ flex: 1, marginRight: spacing(1) }} />
+        <Button
+          title="Entendi"
+          icon={<Ionicons name="arrow-forward" size={18} color="#fff" />}
+          onPress={onStart}
+          style={{ flex: 1.8 }}
+        />
+      </Row>
+    </View>
+  );
+}
+
 function Reveal({ radar, onDone }) {
   const anim = useRef(new Animated.Value(0)).current;
   const [t, setT] = useState(0);
@@ -420,6 +515,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.md, backgroundColor: colors.surface,
     borderWidth: 1, borderColor: colors.glassBorder,
   },
+  helpLink: { color: colors.primaryBright, fontFamily: fonts.bold, fontSize: 13, marginTop: 4 },
+  stepNum: {
+    width: 28, height: 28, borderRadius: 8, marginRight: spacing(1.5), marginTop: 2,
+    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
+  },
+  stepNumText: { color: '#fff', fontFamily: fonts.black, fontSize: 16 },
+  mockField: {
+    flex: 1, alignItems: 'center', paddingVertical: spacing(1), borderRadius: radius.sm,
+    backgroundColor: colors.bg2, borderWidth: 1, borderColor: colors.glassBorder,
+  },
+  mockLabel: { fontFamily: fonts.cond, fontSize: 10, letterSpacing: 1, color: colors.textFaint },
+  mockValue: { fontFamily: fonts.black, fontSize: 26, color: colors.text, marginTop: 2 },
   altChip: {
     paddingVertical: spacing(0.85), paddingHorizontal: spacing(1.5), borderRadius: radius.sm,
     borderWidth: 1, borderColor: colors.glassBorder, marginRight: spacing(1),

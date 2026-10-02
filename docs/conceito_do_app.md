@@ -301,6 +301,7 @@ No fim do onboarding, animar o radar crescendo do centro até os valores calcula
    - Bíceps → **Rosca Direta** (barbell curl)
    - Tríceps → **Supino Fechado** (close-grip bench press)
    Para cada um: "Quanto você levanta?" → peso + reps (ou só reps, na barra fixa). Botão "não faço esse exercício" → pula e o eixo nasce vazio (preenche depois).
+   Antes da primeira marca, uma tela **"Suas marcas"** explica em 4 passos o que fazer (escolher um exercício por grupo, colocar a carga máxima e as repetições da melhor série recente, que é só um ponto de partida e que o radar se ajusta com os treinos), com um exemplo preenchido. Ela pode ser reaberta em cada grupo pelo link "Como preencher?".
    Essas respostas são **marcas iniciais** (o que a pessoa aguenta), não um treino do dia: alimentam o radar, mas ficam fora do calendário, da sequência e das contagens de treino. Cada treino registrado depois atualiza o exercício correspondente.
 4. **Gerar radar** com animação (6.5) e já mostrar: score geral, elo fraco e a primeira próxima-meta.
 
