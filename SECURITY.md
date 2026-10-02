@@ -36,6 +36,14 @@ Como cada item de segurança é atendido, onde está no código e como verificar
 isso exige uma tela web embutida e piora o cadastro. Fica para quando o
 monitoramento mostrar sinal de robôs (alerta de muitos cadastros por hora).
 
+## Privacidade (LGPD)
+
+| Item | Como é atendido | Onde |
+|---|---|---|
+| **Política de privacidade** | Página pública explicando dados, finalidade, base legal, onde ficam (São Paulo), compartilhamento, retenção e direitos. | `site/privacidade.html` → https://fernmoraes.github.io/StatsUp/privacidade.html |
+| **Consentimento** | Aceite obrigatório no cadastro; versão e data do aceite ficam na conta (`privacy_version`, `privacy_accepted_at`). | `app/register.js`, `src/services/auth.js` |
+| **Excluir conta (art. 18)** | Perfil → Excluir conta. Pede a senha de novo e chama `delete_my_account()`, que só apaga a conta de quem chamou (sem parâmetro) e leva junto perfil, treinos e exercícios; o app limpa a cópia do aparelho. Backups criptografados expiram em até 90 dias. | `supabase/migrations/20261004120000_delete_account.sql`, `app/delete-account.js` |
+
 ## Backups
 
 O plano grátis do Supabase não oferece backup para baixar, então o backup é feito
@@ -77,7 +85,8 @@ os arquivos do app não consegue ler nada. (`src/storage/secureStorage.js`)
 ## Configuração no painel do Supabase (uma vez)
 
 1. **SQL Editor** → rode `supabase/migrations/20261002120000_security_hardening.sql`
-   e depois `supabase/migrations/20261003120000_abuse_protection.sql`.
+   depois `supabase/migrations/20261003120000_abuse_protection.sql` e
+   `supabase/migrations/20261004120000_delete_account.sql`.
 2. **SQL Editor** → rode `supabase/tests/rls_test.sql`. Todas as linhas devem
    mostrar ✅ PASSOU.
 3. **Authentication → Sign In / Providers → Email** (ou *Authentication →

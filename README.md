@@ -71,6 +71,8 @@ Perfis em [`eas.json`](eas.json): `preview` (APK para testes) e `production`
 - **Histórico** com calendário, dias desde o último treino de cada grupo, evolução do
   radar e linha do tempo.
 - **Tutorial** de uso depois do cadastro (pode ser revisto pelo Perfil).
+- **Privacidade (LGPD)**: [política de privacidade](https://fernmoraes.github.io/StatsUp/privacidade.html)
+  aceita no cadastro e **exclusão de conta** pelo Perfil (apaga a conta e todos os dados).
 - **Funciona offline**: tudo é salvo no aparelho primeiro e sincronizado com a nuvem
   quando houver internet.
 
@@ -108,7 +110,9 @@ Configuração única, feita no painel do projeto no Supabase:
 
 1. **Banco** — *SQL Editor → New query*: rode, nesta ordem,
    [`20261001120000_init.sql`](supabase/migrations/20261001120000_init.sql) e
-   [`20261002120000_security_hardening.sql`](supabase/migrations/20261002120000_security_hardening.sql).
+   [`20261002120000_security_hardening.sql`](supabase/migrations/20261002120000_security_hardening.sql),
+   [`20261003120000_abuse_protection.sql`](supabase/migrations/20261003120000_abuse_protection.sql) e
+   [`20261004120000_delete_account.sql`](supabase/migrations/20261004120000_delete_account.sql).
    Criam `profiles`, `workouts` e `workout_entries` com RLS: cada usuário só lê e
    altera as próprias linhas.
 2. **Página de confirmação** — *Authentication → URL Configuration*:

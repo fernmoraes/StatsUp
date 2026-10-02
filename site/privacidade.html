@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Política de privacidade · StatsUp</title>
+  <meta name="description" content="Quais dados o StatsUp guarda, para quê, onde e quais são os seus direitos (LGPD)." />
+  <meta name="theme-color" content="#0F0D0D" />
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0F0D0D; --surface: #1B1717; --border: rgba(255, 240, 238, 0.08);
+      --text: #F8F4F3; --text-dim: #B5ABA9; --text-faint: #726866;
+      --primary: #DE1C1D; --primary-bright: #FF5451;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      background: var(--bg);
+      background-image: radial-gradient(120% 40% at 85% 0%, rgba(222, 28, 29, 0.18), rgba(222, 28, 29, 0) 60%);
+      color: var(--text);
+      font-family: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.6;
+    }
+    main { max-width: 720px; margin: 0 auto; padding: max(32px, env(safe-area-inset-top)) 20px 48px; }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+    .brand-mark { width: 40px; height: 40px; border-radius: 11px; background: var(--primary); display: grid; place-items: center; }
+    .brand-mark img { width: 27px; height: auto; }
+    .brand-name { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 21px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .eyebrow { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--text-faint); margin-top: 40px; }
+    h1 { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 44px; line-height: 1; text-transform: uppercase; margin: 6px 0 12px; }
+    h2 { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: 0.4px; text-transform: uppercase; margin: 36px 0 10px; }
+    p, li { color: var(--text-dim); font-size: 16px; }
+    p + p { margin-top: 10px; }
+    ul { padding-left: 20px; margin-top: 6px; }
+    li + li { margin-top: 6px; }
+    strong { color: var(--text); font-weight: 600; }
+    a { color: var(--primary-bright); }
+    .summary { margin-top: 24px; padding: 18px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+    .summary li { color: var(--text); }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 15px; }
+    th, td { text-align: left; vertical-align: top; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+    th { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); font-size: 13px; }
+    td { color: var(--text-dim); }
+    td:first-child { color: var(--text); font-weight: 500; }
+    footer { margin-top: 48px; font-size: 13px; color: var(--text-faint); }
+    @media (max-width: 480px) { h1 { font-size: 36px; } table { font-size: 14px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="brand" href="./">
+      <span class="brand-mark"><img src="assets/logo-mark.png" alt="" /></span>
+      <span class="brand-name">StatsUp</span>
+    </a>
+
+    <p class="eyebrow">Última atualização: 2 de outubro de 2026</p>
+    <h1>Política de privacidade</h1>
+    <p>Esta política explica quais dados o app <strong>StatsUp</strong> guarda, para quê, onde eles ficam e
+      quais são os seus direitos pela <strong>Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018)</strong>.</p>
+
+    <div class="summary">
+      <ul>
+        <li>Guardamos só o necessário para calcular o seu radar de força.</li>
+        <li>Não vendemos seus dados, não exibimos anúncios e não usamos rastreadores.</li>
+        <li>Você pode excluir sua conta e todos os seus dados a qualquer momento, pelo próprio app.</li>
+      </ul>
+    </div>
+
+    <h2>1. Quais dados guardamos</h2>
+    <table>
+      <thead><tr><th>Dado</th><th>Para quê</th></tr></thead>
+      <tbody>
+        <tr><td>Nome e e-mail</td><td>Identificar sua conta e permitir o login.</td></tr>
+        <tr><td>Senha</td><td>Login. Guardamos só um <em>hash</em> (uma versão embaralhada e irreversível); ninguém consegue ler a senha.</td></tr>
+        <tr><td>Sexo, data de nascimento, altura e peso</td><td>Comparar sua força com pessoas do mesmo perfil. Sem eles não há como calcular o percentil.</td></tr>
+        <tr><td>Objetivo e modo de comparação por idade</td><td>Ajustar as metas e a forma de comparação.</td></tr>
+        <tr><td>Treinos e marcas (exercício, carga, repetições, data)</td><td>Calcular o radar, o histórico e o calendário.</td></tr>
+        <tr><td>Registros técnicos de acesso (data e hora do login, endereço IP)</td><td>Segurança: detectar abuso e tentativas de invasão. Mantidos por pouco tempo pelo provedor.</td></tr>
+      </tbody>
+    </table>
+    <p>Altura, peso e dados de treino podem revelar informações sobre a sua saúde. Por isso pedimos o seu
+      <strong>consentimento</strong> no cadastro e tratamos esses dados só para as finalidades acima.</p>
+
+    <h2>2. Base legal</h2>
+    <p>Tratamos os dados com base no seu <strong>consentimento</strong>, dado ao criar a conta (LGPD, art. 7º, I, e
+      art. 11, I), e para executar o serviço que você pediu (art. 7º, V). Você pode retirar o consentimento a
+      qualquer momento excluindo a conta.</p>
+
+    <h2>3. Onde os dados ficam</h2>
+    <ul>
+      <li><strong>Banco de dados:</strong> no Supabase, em servidores da região de <strong>São Paulo (Brasil)</strong>,
+        com acesso protegido: cada conta só consegue ler e alterar os próprios dados.</li>
+      <li><strong>No seu celular:</strong> uma cópia para o app funcionar sem internet, <strong>criptografada</strong>
+        (AES-256), com a chave guardada no cofre do sistema (Android Keystore / iOS Keychain).</li>
+      <li><strong>Cópias de segurança:</strong> uma vez por semana, uma cópia do banco é
+        <strong>criptografada</strong> e guardada no GitHub por até <strong>90 dias</strong>, só para recuperação em
+        caso de falha. Sem a chave de criptografia, o arquivo é ilegível.</li>
+    </ul>
+    <p>Toda a comunicação entre o app e o servidor é feita por conexão segura (HTTPS/TLS).</p>
+
+    <h2>4. Compartilhamento</h2>
+    <p>Não compartilhamos seus dados com ninguém para fins comerciais. Usamos apenas os serviços necessários para
+      o app funcionar, que tratam os dados em nosso nome: <strong>Supabase</strong> (contas e banco de dados) e
+      <strong>GitHub</strong> (cópias de segurança criptografadas). Os dados podem ser revelados se uma lei ou
+      ordem judicial exigir.</p>
+
+    <h2>5. Por quanto tempo</h2>
+    <p>Enquanto sua conta existir. Ao excluir a conta, seus dados são apagados do banco <strong>imediatamente</strong>
+      e da cópia no celular; as cópias de segurança criptografadas que ainda os contenham expiram em até 90 dias.</p>
+
+    <h2>6. Seus direitos (LGPD, art. 18)</h2>
+    <ul>
+      <li><strong>Acessar e corrigir</strong> seus dados: pelo próprio app (Perfil e Histórico).</li>
+      <li><strong>Excluir</strong> sua conta e todos os seus dados: <em>Perfil → Excluir conta</em>.</li>
+      <li><strong>Saber com quem compartilhamos</strong> e <strong>pedir uma cópia</strong> (portabilidade): pelo contato abaixo.</li>
+      <li><strong>Retirar o consentimento</strong>: excluindo a conta.</li>
+    </ul>
+
+    <h2>7. Menores de idade</h2>
+    <p>Menores de 18 anos devem usar o app com o conhecimento e a autorização dos pais ou responsáveis.</p>
+
+    <h2>8. Alterações</h2>
+    <p>Se esta política mudar, a data no topo da página será atualizada. Mudanças importantes serão avisadas no app.</p>
+
+    <h2>9. Contato</h2>
+    <p>Dúvidas ou pedidos sobre seus dados: abra uma solicitação em
+      <a href="https://github.com/fernmoraes/StatsUp/issues" rel="noopener">github.com/fernmoraes/StatsUp/issues</a>
+      (não coloque dados pessoais na mensagem; responderemos pedindo a confirmação pelo app).</p>
+
+    <footer>StatsUp · sua força em percentil · <a href="./">página inicial</a></footer>
+  </main>
+</body>
+</html>

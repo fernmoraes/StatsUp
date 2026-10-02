@@ -17,6 +17,7 @@ import {
   setDirty,
   isTutorialDone,
   setTutorialDone,
+  purgeUserData,
 } from '../storage/store';
 import * as auth from '../services/auth';
 import { pushAll, pullAll } from '../services/sync';
@@ -187,6 +188,19 @@ export function AppProvider({ children }) {
   }, []);
 
   // Escritas: salva no aparelho na hora, marca pendente e envia para a nuvem.
+  // Exclui a conta (nuvem + aparelho). Lança AuthError (ex.: senha incorreta).
+  const deleteAccount = useCallback(async (password) => {
+    const uid = userRef.current && userRef.current.id;
+    await auth.deleteAccount(password);
+    if (uid) await purgeUserData(uid);
+    userRef.current = null;
+    setSyncState('idle');
+    setTutorialVisible(false);
+    setUser(null);
+    setProfile(null);
+    setLogs([]);
+  }, []);
+
   const persistProfile = useCallback(async (p) => {
     writeSeq.current++;
     setProfile(p);
@@ -285,6 +299,7 @@ export function AppProvider({ children }) {
     signUp,
     signIn,
     signOut,
+    deleteAccount,
     syncState,
     syncNow,
     tutorialVisible,

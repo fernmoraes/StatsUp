@@ -11,6 +11,11 @@ const K_CACHED_USER = 'statsup:cached-user:v1';
 
 export const MAX_NAME = 60;
 
+// Versão da política de privacidade aceita no cadastro (data da página
+// site/privacidade.html). Fica na conta como comprovação do consentimento (LGPD).
+export const PRIVACY_VERSION = '2026-10-02';
+export const PRIVACY_URL = process.env.EXPO_PUBLIC_PRIVACY_URL;
+
 // Política de senha (cadastro). O login aceita senhas antigas, criadas antes
 // desta regra, para não trancar contas existentes.
 export const MIN_PASSWORD = 8;
@@ -74,12 +79,13 @@ async function rememberUser(user) {
 
 // Retorna { user } ou { needsConfirmation: true } quando o projeto exige
 // confirmar o e-mail antes do primeiro login.
-export async function signUp({ name, email, password }) {
+export async function signUp({ name, email, password, acceptedPrivacy }) {
   const cleanName = name.trim();
   if (!cleanName) throw new AuthError('name', 'Informe seu nome.');
   if (cleanName.length > MAX_NAME) throw new AuthError('name', `Use no máximo ${MAX_NAME} caracteres.`);
   if (!isValidEmail(email)) throw new AuthError('email', 'E-mail inválido.');
   if (!isStrongPassword(password)) throw new AuthError('password', 'A senha não atende a todos os requisitos.');
+  if (!acceptedPrivacy) throw new AuthError('privacy', 'Aceite a política de privacidade para criar a conta.');
 
   await setRememberSession(true); // cadastro já entra com a conta salva
   let res;
@@ -88,7 +94,11 @@ export async function signUp({ name, email, password }) {
       email: normalizeEmail(email),
       password,
       options: {
-        data: { name: cleanName },
+        data: {
+          name: cleanName,
+          privacy_version: PRIVACY_VERSION,
+          privacy_accepted_at: new Date().toISOString(),
+        },
         // Depois de confirmar, o link abre a página do StatsUp (site/).
         emailRedirectTo: process.env.EXPO_PUBLIC_AUTH_REDIRECT_URL,
       },
@@ -178,6 +188,38 @@ export async function signIn({ email, password, remember }) {
     await secureStorage.removeItem(K_CACHED_USER);
   }
   return user;
+}
+
+// Exclusão de conta (LGPD). Pede a senha de novo — quem pegar o celular
+// desbloqueado não consegue apagar a conta — e chama a função do banco, que só
+// apaga a conta de quem está logado (supabase/migrations/…_delete_account.sql).
+export async function deleteAccount(password) {
+  const { data } = await supabase.auth.getSession();
+  const email = data && data.session && data.session.user && data.session.user.email;
+  if (!email) throw new AuthError('network', 'Entre de novo na sua conta e tente outra vez.');
+
+  let check;
+  try {
+    check = await supabase.auth.signInWithPassword({ email, password });
+  } catch (e) {
+    throw translate(e);
+  }
+  if (check.error) {
+    const err = translate(check.error);
+    throw err.code === 'credentials' ? new AuthError('password', 'Senha incorreta.') : err;
+  }
+
+  let res;
+  try {
+    res = await supabase.rpc('delete_my_account');
+  } catch (e) {
+    throw translate(e);
+  }
+  if (res.error) throw translate(res.error);
+
+  await signOut();
+  await clearFailures(email);
+  if ((await AsyncStorage.getItem(K_LAST_EMAIL)) === email) await AsyncStorage.removeItem(K_LAST_EMAIL);
 }
 
 export async function signOut() {

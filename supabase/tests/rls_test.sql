@@ -216,6 +216,33 @@ begin
   select count(*) into n from public.workouts where user_id = a and id = 'teste_a';
   r := r || jsonb_build_object('t', 'Treino de A intacto após os ataques', 'ok', n = 1, 'd', '');
 
+  -- 7. Exclusão de conta (migração 20261004120000_delete_account) ------------
+  if exists (select 1 from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
+             where ns.nspname = 'public' and p.proname = 'delete_my_account') then
+    r := r || jsonb_build_object('t', 'Excluir conta: anon NÃO pode chamar a função',
+      'ok', not has_function_privilege('anon', 'public.delete_my_account()', 'EXECUTE'), 'd', '');
+
+    perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
+    perform set_config('request.jwt.claim.sub', a::text, true);
+    execute 'set local role authenticated';
+    begin
+      perform public.delete_my_account();
+      r := r || jsonb_build_object('t', 'Excluir conta: A exclui a própria conta', 'ok', true, 'd', '');
+    exception when others then
+      r := r || jsonb_build_object('t', 'Excluir conta: A exclui a própria conta', 'ok', false, 'd', sqlerrm);
+    end;
+    execute 'reset role';
+
+    select count(*) into n from auth.users where id = a;
+    r := r || jsonb_build_object('t', 'Excluir conta: a conta de A sumiu', 'ok', n = 0, 'd', '');
+    select (select count(*) from public.profiles where id = a)
+         + (select count(*) from public.workouts where user_id = a)
+         + (select count(*) from public.workout_entries where user_id = a) into n;
+    r := r || jsonb_build_object('t', 'Excluir conta: todos os dados de A sumiram', 'ok', n = 0, 'd', n || ' linhas restantes');
+    select count(*) into n from public.profiles where id = b;
+    r := r || jsonb_build_object('t', 'Excluir conta: os dados de B continuam', 'ok', n = 1, 'd', '');
+  end if;
+
   insert into rls_resultados (teste, passou, detalhe)
   select x->>'t', (x->>'ok')::boolean, x->>'d' from jsonb_array_elements(r) as x;
 end $$;

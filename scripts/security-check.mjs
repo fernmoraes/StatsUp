@@ -84,8 +84,18 @@ for (const f of srcFiles) {
 }
 check('Código sem endereços http:// (sem TLS)', httpRefs.length === 0, httpRefs.slice(0, 5).join('; '));
 
-const rpcUse = srcFiles.filter((f) => /\.rpc\(|\.sql`|raw\s*\(/.test(readFileSync(f, 'utf8')));
-check('Sem SQL montado no app (só a API parametrizada do Supabase)', rpcUse.length === 0, rpcUse.join(', '));
+// RPC só para funções fixas e revisadas (sem SQL dinâmico); nada de SQL montado.
+const ALLOWED_RPC = ['delete_my_account'];
+const badSql = [];
+for (const f of srcFiles) {
+  const text = readFileSync(f, 'utf8');
+  if (/\.sql`|raw\s*\(/.test(text)) badSql.push(`${f}: SQL montado`);
+  for (const m of text.matchAll(/\.rpc\(\s*([^,)]*)/g)) {
+    const name = m[1].trim().replace(/^['"]|['"]$/g, '');
+    if (!ALLOWED_RPC.includes(name)) badSql.push(`${f}: rpc(${m[1].trim()})`);
+  }
+}
+check('Sem SQL montado no app (só a API parametrizada e RPCs revisadas)', badSql.length === 0, badSql.join(', '));
 
 // ------------------------------------------------------------- API real (anon)
 const url = env.EXPO_PUBLIC_SUPABASE_URL;
@@ -133,6 +143,10 @@ if (!online || !url) {
     const del = await fetch(`${url}/rest/v1/${t}?${all}`, { method: 'DELETE', headers });
     check(`Sem login: NÃO apaga ${t}`, !(await isLeak(del)), `HTTP ${del.status}`);
   }
+
+  // Excluir conta: a função não pode ser chamada sem login.
+  const rpc = await fetch(`${url}/rest/v1/rpc/delete_my_account`, { method: 'POST', headers, body: '{}' });
+  check('Sem login: NÃO chama a função de excluir conta', rpc.status >= 400, `HTTP ${rpc.status}`);
 
   // Storage: o app não guarda arquivos. Se um dia existir um bucket, ele não
   // pode ser listável/legível sem login (teria que ter políticas próprias).

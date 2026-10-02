@@ -32,7 +32,10 @@ export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const bottom = Math.max(insets.bottom, 8);
   // Sem conta → login; conta sem perfil (ex.: dados apagados na nuvem) → perguntas.
-  const { user, profile, tutorialVisible, closeTutorial } = useApp();
+  const { ready, user, profile, tutorialVisible, closeTutorial } = useApp();
+  // Espera a sessão salva ser restaurada (abrir direto numa aba, recarregar…);
+  // sem isso mandaria para o login mesmo com a conta salva.
+  if (!ready) return null;
   if (!user) return <Redirect href="/login" />;
   if (!profile) return <Redirect href="/onboarding" />;
   return (

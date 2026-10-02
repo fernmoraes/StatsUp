@@ -53,6 +53,9 @@ export default function Login() {
       {notice === 'confirm' && !formError ? (
         <FormNotice message="Conta criada. Abra o link que enviamos para o seu e-mail para confirmar e depois entre aqui." />
       ) : null}
+      {notice === 'deleted' && !formError ? (
+        <FormNotice message="Sua conta e todos os seus dados foram excluídos." />
+      ) : null}
       <FormError message={formError} />
 
       <Field

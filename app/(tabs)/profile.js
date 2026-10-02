@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Keyboard } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Keyboard, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { currentVersionName } from '../../src/services/appVersion';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ import { colors, spacing, radius, font, fonts, gradients, hexA } from '../../src
 import { GOALS, getGoal } from '../../src/data/goals';
 import { useDialog } from '../../src/components/dialog';
 import { validateBodyweight, toNumber } from '../../src/utils/validation';
+import { PRIVACY_URL } from '../../src/services/auth';
 import { ageFromBirthDate } from '../../src/data/levels';
 
 function InfoCol({ label, value, unit }) {
@@ -195,7 +196,18 @@ export default function Profile() {
         <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
       </Card>
 
+      <Card onPress={() => PRIVACY_URL && Linking.openURL(PRIVACY_URL)} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing(1.5) }}>
+        <Ionicons name="shield-checkmark-outline" size={20} color={colors.primaryBright} style={{ marginRight: spacing(1.25) }} />
+        <Small style={{ flex: 1, color: colors.text }}>Política de privacidade</Small>
+        <Ionicons name="open-outline" size={18} color={colors.textFaint} />
+      </Card>
+
       <Button title="Sair da conta" variant="danger" icon={<Ionicons name="log-out-outline" size={18} color={colors.bad} />} onPress={confirmSignOut} style={{ marginTop: spacing(0.5) }} />
+
+      {/* LGPD: o usuário pode apagar a conta e todos os dados (pede a senha de novo). */}
+      <Pressable onPress={() => router.push('/delete-account')} hitSlop={8} accessibilityRole="button" style={{ alignSelf: 'center', marginTop: spacing(2), padding: spacing(1) }}>
+        <Text style={{ color: colors.bad, fontFamily: fonts.semibold, fontSize: 14 }}>Excluir conta</Text>
+      </Pressable>
 
       <View style={{ alignItems: 'center', marginTop: spacing(3), opacity: 0.55 }}>
         <BrandMark size={26} />

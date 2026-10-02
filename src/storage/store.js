@@ -42,6 +42,13 @@ export async function setTutorialDone(userId) {
   await AsyncStorage.setItem(kTutorial(userId), '1');
 }
 
+// Conta excluída: apaga também tudo o que ficou no aparelho.
+export async function purgeUserData(userId) {
+  await secureStorage.removeItem(kProfile(userId));
+  await secureStorage.removeItem(kLogs(userId));
+  await AsyncStorage.multiRemove([kDirty(userId), kTutorial(userId)]);
+}
+
 export async function isDirty(userId) {
   return (await AsyncStorage.getItem(kDirty(userId))) === '1';
 }
