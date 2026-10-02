@@ -157,6 +157,19 @@ export default function RadarChart({ scores, size = 320, past = null, onPressAxi
               <SvgText x={labelPt.x} y={labelPt.y + 16} fill={has ? colors.text : colors.textFaint} fontSize={19} fontFamily={fonts.black} textAnchor="middle">
                 {has ? `${Math.round(sc.score)}` : '—'}
               </SvgText>
+              {/* Área de toque sobre o nome + número. Os textos ficam por cima do
+                  ponto do eixo e "engoliam" o toque (ex.: TRÍCEPS, o rótulo mais
+                  largo, cobria o alvo). Agora tocar no nome também abre o grupo. */}
+              {onPressAxis ? (
+                <Rect
+                  x={labelPt.x - 38}
+                  y={labelPt.y - 28}
+                  width={76}
+                  height={52}
+                  fill="transparent"
+                  onPress={() => onPressAxis(a.group)}
+                />
+              ) : null}
             </G>
           );
         })}

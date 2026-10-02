@@ -9,7 +9,11 @@ import { getExercise } from '../data/exercises';
 import { colors, groupColor, hexA } from '../theme';
 
 export default function ExerciseImage({ exerciseId, size = 56, radius, color, light, style }) {
-  const [err, setErr] = useState(false);
+  // O erro vale só para o exercício que falhou. Antes era um booleano: quando o
+  // mesmo componente trocava de exercício (marcas do cadastro, carrossel), um
+  // único GIF com erro fazia TODOS os seguintes caírem no pictograma.
+  const [failedId, setFailedId] = useState(null);
+  const err = failedId === exerciseId;
   const ex = exerciseId ? getExercise(exerciseId) : null;
   const accent = color || (ex ? groupColor[ex.muscle_group] : colors.primary);
   const gif = getExerciseGif(exerciseId);
@@ -37,11 +41,16 @@ export default function ExerciseImage({ exerciseId, size = 56, radius, color, li
     >
       {showGif ? (
         <Image
+          // Recria a imagem a cada exercício: o expo-image pode manter o GIF
+          // animado anterior quando só a origem muda no mesmo componente.
+          key={exerciseId}
+          recyclingKey={exerciseId}
           source={gif}
           style={{ width: '94%', height: '94%' }}
           contentFit="contain"
-          transition={200}
-          onError={() => setErr(true)}
+          transition={150}
+          autoplay
+          onError={() => setFailedId(exerciseId)}
         />
       ) : (
         <ExerciseFigure exerciseId={exerciseId} size={Math.round(size * 0.88)} color={accent} />

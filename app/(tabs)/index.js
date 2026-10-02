@@ -47,7 +47,8 @@ export default function Home() {
   const hasData = logs.length > 0;
   const goal = getGoal(profile.goal);
   const overall = radar.overall;
-  const onPressAxis = (group) => { if (SUBGROUPS_BY_GROUP[group]) router.push(`/subradar/${group}`); };
+  // Todo eixo abre o detalhe do grupo (perna mostra subgrupos; os demais, exercícios).
+  const onPressAxis = (group) => router.push(`/subradar/${group}`);
 
   return (
     <Screen>
@@ -72,7 +73,7 @@ export default function Home() {
         <RadarChart scores={radar.scores} size={320} onPressAxis={onPressAxis} />
         <Row style={{ marginTop: spacing(0.5) }}>
           <Ionicons name="hand-left-outline" size={12} color={colors.textFaint} />
-          <Tiny style={{ marginLeft: 5 }}>Toque em Perna para ver quadríceps, posterior, glúteos e panturrilha</Tiny>
+          <Tiny style={{ marginLeft: 5 }}>Toque em um grupo do radar para ver o detalhe</Tiny>
         </Row>
       </GradientCard>
 
